@@ -4,3 +4,7 @@ pandas
 folium
 streamlit-folium
 requests
+python-dotenv
+googlemaps
+plotly
+pytz
