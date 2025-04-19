@@ -1,72 +1,92 @@
 <div align="center">
 
-# CommuteGuardian
+# 🚗 San Jose Safe Commute | Route Planner
 
-### AI-Powered Traffic Safety Analytics for San Jose Commuters
+An AI‑powered Streamlit app to help San Jose commuters plan safer routes by combining Google Maps autocomplete, Folium maps, and a simple risk‑scoring model based on time of day and historical data.
 
-[Features](#features) • [Technical Architecture](#technical-architecture) • [Installation](#installation) • [Usage](#usage) • [Contributing](#contributing)
+---
 
-</div>
+## 🔍 Features
 
-## Overview
+- **Autocomplete Inputs**  
+  Suggests “San Jose, CA”–focused start & end locations via Google Maps Places Autocomplete.
+- **Interactive Route Map**  
+  Displays origin & destination markers, draws the route, and auto‑fits bounds.
+- **Safety Scoring**  
+  Calculates a 1–10 “Route Safety Score” based on time‑of‑day risk factors (late night, rush hour, etc.) and random variability (placeholder for a real ML model).
+- **Contextual Warnings & Tips**  
+  Shows tailored messages & precautionary recommendations by score tier.
+- **Historical Hotspot Table**  
+  Presents sample accident‑hotspot data for San Jose.
+- **Feedback Form**  
+  Collect user suggestions via a simple Streamlit form.
 
-CommuteGuardian is an innovative AI application specifically crafted to enhance traffic safety for San Jose commuters. It leverages advanced machine learning techniques to deliver precise and actionable insights, transforming complex traffic data into clear, life-saving recommendations.
+---
 
-### Data Sources & ML Architecture
-- **Historical Data**: Real traffic incident records from San Jose Open Data Portal
-- **Predictive Models**:
-  - Logistic Regression for probability estimation
-  - Random Forest for capturing non-linear patterns
-  - Synthetic data generation using SMOTE and GANs
+## 📦 Installation
 
-## Features
+1. **Clone the repo**
+   ```bash
+   git clone https://github.com/your‑username/san‑jose‑safe‑commute.git
+   cd san‑jose‑safe‑commute
+   ```
+2. **Create & activate a virtual environment**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate         # macOS/Linux
+   venv\Scripts\activate            # Windows
+   ```
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### 🎯 Predictive Risk Modeling
-- Real-time accident probability forecasting
-- Multi-factor analysis including:
-  - Time patterns (rush hours, night travel)
-  - Weather conditions (rain, visibility)
-  - Road characteristics
-  - Historical incident patterns
+### ⚙️ Setup Google Maps API Key
 
-### 📊 Advanced Analytics Dashboard
-- Neighborhood safety profiling
-- Time-based risk pattern analysis
-- Weather impact visualization
-- Traffic density heat maps
+- Create a `.env` file in the project root
+- Add your key:
+   ```env
+   GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
+   ```
+- Other Environment Variables: (No other secrets required for this prototype.)
 
-### 🗺️ Dynamic Hazard Mapping
-- Interactive Folium-based visualization
-- Real-time risk zone highlighting
-- Custom safety overlay layers
-- Route-specific risk assessment
+---
 
-### 🔔 Intelligent Safety Alerts
-- Context-aware recommendations
-- Time-sensitive route guidance
-- Weather-based precautions
-- Emergency response integration
+## 🚀 Running the App
+```bash
+streamlit run app.py
+```
+Then open http://localhost:8501 in your browser.
 
-## Technical Architecture
+---
 
-### Core ML Stack
-- **Primary Models**:
-  ```python
-  from sklearn.ensemble import RandomForestClassifier
-  from sklearn.linear_model import LogisticRegression
-  ```
-- **Data Processing**:
-  ```python
-  from sklearn.preprocessing import StandardScaler
-  from imblearn.over_sampling import SMOTE
-  ```
+## 📝 Usage
+- Enter your starting location and destination in the sidebar (autocomplete suggestions will appear).
+- Click “Calculate Route Safety” to:
+  - Compute and display current time (PST) and safety score.
+  - Show contextual warnings (late night, rush hour, etc.).
+  - Get actionable recommendations based on the score.
+  - View the interactive Folium map and the historical hotspots table.
+  - Submit feedback via the form at the bottom.
 
-### Development Stack
-- **Framework**: Python 3.x, Streamlit
-- **Data Processing**: pandas, numpy
-- **Visualization**: Plotly, Folium
-- **ML Libraries**: scikit-learn
-- **API Integration**: Google Maps Platform
+---
+
+## 🛠️ Code Structure
+- `app.py`  
+  Main Streamlit app including layout, inputs, session state, and map rendering.
+- `risk_model.py` (placeholder)  
+  Contains `basic_predict_risk()` for computing a mock risk score.
+- `requirements.txt`  
+  Lists all Python dependencies.
+
+---
+
+## 🤝 Contributing
+- Fork the repository
+- Create your feature branch (`git checkout -b feature/YourFeature`)
+- Commit your changes (`git commit -m 'Add YourFeature'`)
+- Push to the branch (`git push origin feature/YourFeature`)
+- Open a Pull Request 🚀
 
 ## Installation
 
