@@ -12,6 +12,7 @@ import sys
 import json
 from datetime import datetime
 from pathlib import Path
+from dotenv import load_dotenv
 # Add parent directory to import path for direct running
 parent_dir = str(Path(__file__).parent)
 if parent_dir not in sys.path:
