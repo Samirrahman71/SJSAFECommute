@@ -1,274 +1,61 @@
-# 🚗 San Jose Safe Commute | AI Safety Navigator
+# San Jose Safe Commute App
 
-An advanced AI-powered Streamlit app to help San Jose commuters plan safer routes by integrating real crash data analysis, machine learning risk prediction, and interactive safety visualizations. The app has been optimized for both mobile and desktop experiences.
+## Overview
 
----
+An AI-powered app that helps San Jose residents plan safer commutes by analyzing historical crash data and providing personalized route safety recommendations. The app uses advanced ML models to predict safety scores and risk levels for different routes at different times of day.
 
-## 🔍 Features
+## Technologies Used
 
-- **AI-Powered Route Safety Analysis**  
-  Utilizes natural language processing and machine learning to analyze route safety with personalized recommendations.
+- **Streamlit**: For the web interface and interactive elements
+- **OpenAI API**: Powers the AI assistant and safety analysis features
+- **Google Maps API**: For location autocomplete and route visualization
+- **Pandas & NumPy**: For data processing and analysis
+- **Plotly**: For interactive data visualizations
+- **Machine Learning**: Custom safety score prediction and risk classification models
 
-- **Real Crash Data Integration**  
-  Incorporates actual San Jose crash data (2011-2021) using statistical pattern recognition to identify risk factors.
+## Key Features
 
-- **Interactive Safety Visualization**  
-  Displays comprehensive safety analytics with AI-generated insights about crash patterns, hotspots, and contributing factors.
+- **Route Safety Analysis**: Calculates safety scores for routes based on historical data
+- **Interactive Maps**: Visualizes safety hotspots and alternative routes
+- **AI Safety Assistant**: Answers safety-related questions about commuting in San Jose
+- **Crash Data Analysis**: Interactive visualizations of traffic incident patterns
+- **Responsive Design**: Optimized for both mobile and desktop use
 
-- **ML Risk Prediction Model**  
-  Uses ensemble learning techniques to calculate route-specific risk scores based on multiple factors.
-
-- **Temporal Pattern Recognition**  
-  Identifies high-risk travel periods based on historical incident data analysis with easy-to-read 12-hour time format.
-
-- **Smart Route Recommendations**  
-  Generates alternative route suggestions optimized for safety.
-
-- **Natural Language Safety Assistant**  
-  Features an AI chat interface that can answer route-specific safety questions.
-
-- **Autocomplete Location Inputs**  
-  Suggests San Jose-focused locations via Google Maps Places API integration.
-
-- **Responsive Design**  
-  Fully optimized for both mobile and desktop devices with an intuitive, user-friendly interface.
-
----
-
-## 📦 Installation
-
-1. **Clone the repo**
-   ```bash
-   git clone https://github.com/Samirrahman71/SJCAPP.git
-   cd SJCAPP
-   ```
-2. **Create & activate a virtual environment**
-
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate         # macOS/Linux
-   venv\Scripts\activate            # Windows
-   ```
-3. **Install dependencies**
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-### ⚙️ API Key Configuration
-
-Create a `.env` file in the project root and add the following keys:
-
-```env
-GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
-OPENAI_API_KEY=your_openai_api_key_here  # For AI assistant features
-```
-
-Note: The app will function without the OpenAI API key but will use simulated AI responses instead of the full AI capabilities.
-
----
-
-## 🚀 Running the App
+## Quick Start
 
 ```bash
+# Clone the repository
+git clone https://github.com/Samirrahman71/SJSAFECommute.git
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Create a .env file with your API keys
+echo "GOOGLE_MAPS_API_KEY=your_key_here" > .env
+echo "OPENAI_API_KEY=your_key_here" >> .env
+
+# Run the app
 streamlit run 1_🏠_Home.py
 ```
 
-Then open [http://localhost:8501](http://localhost:8501) in your browser.
+## Project Structure
 
----
+- **Main App**: Entry point with route safety analysis features
+- **Crash Data Analysis**: In-depth analysis of historical crash data
+- **Utils Directory**: Helper functions for data processing, ML models, and API integrations
+- **Models Directory**: Pre-trained machine learning models for safety prediction
 
-## 📝 Usage
+## Recent Updates
 
-### Home Page
-- Enter your starting and destination locations in San Jose
-- Select transportation mode, time of day, and weather conditions
-- Get an AI-powered safety analysis with personalized recommendations
-- View interactive map with safety hotspots and alternate routes
+- All times now displayed in 12-hour format for better readability
+- Enhanced error handling for improved reliability
+- Improved UI responsiveness for mobile devices
+- Streamlined data processing pipeline for faster predictions
 
-### Crash Data Analysis
-- Explore comprehensive visualizations of actual San Jose crash data
-- View AI-generated insights about crash patterns and risk factors
-- Analyze trends by time, location, and contributing factors
-- Access advanced safety analytics customized for San Jose commuters
+## Live Demo
 
-### Analytics Dashboard
-- View city-wide safety metrics and trends
-- Explore neighborhood-specific safety profiles
-- Understand temporal patterns affecting commute risk
-- Track changes in safety conditions over time
-
----
-
-## 🛠️ Code Structure
-
-### Main Application Files
-
-- `1_🏠_Home.py`  
-  Main Streamlit app with route safety analysis, interactive map, and user inputs.
-- `pages/2_📊_Analytics_Dashboard.py`  
-  Data visualization dashboard with city-wide safety analytics.
-- `pages/3_🔍_Crash_Data_Analysis.py`  
-  Real crash data analysis with AI-generated insights.
-
-### Core Components
-
-- `enhanced_safety.py`  
-  Contains advanced safety scoring algorithms and visualization tools.
-- `ai_assistant.py`  
-  Implements the natural language processing interface and AI chat capabilities.
-- `utils/custom_data_processor.py`  
-  Processes and analyzes crash data using statistical methods.
-
-### Data Resources
-
-- `utils/sample_incident_data.csv`  
-  Sample incident data for demonstration purposes.
-- `utils/crashdata2011-2021.csv`  
-  Real San Jose crash data spanning 10 years.
-
-### Configuration
-
-- `.env.example`  
-  Template for environment variables configuration.
-- `requirements.txt`  
-  Lists all Python dependencies.
-
----
-
-## 🤝 Contributing
-- Fork the repository
-- Create your feature branch (`git checkout -b feature/YourFeature`)
-- Commit your changes (`git commit -m 'Add YourFeature'`)
-- Push to the branch (`git push origin feature/YourFeature`)
-- Open a Pull Request 🚀
-
-## 🧠 AI & Machine Learning Methods
-
-This application incorporates several AI and machine learning techniques:
-
-### Predictive Modeling
-
-- **Ensemble Learning**: Combines multiple prediction models for more accurate safety scores
-- **Pattern Analysis**: Used for feature importance in crash risk factor analysis
-- **Classification Models**: Implements classification of route safety levels
-
-### Data Processing
-
-- **Statistical Pattern Recognition**: Identifies significant patterns in crash data
-- **Spatial Clustering**: Detects high-risk areas and accident hotspots
-- **Time Series Analysis**: Analyzes temporal patterns in accident occurrence
-
-### Natural Language Processing
-
-- **Contextual Understanding**: Processes natural language queries about route safety
-- **Response Generation**: Creates personalized safety recommendations
-- **Intent Recognition**: Identifies user safety concerns from conversational input
-
-### Example Code (Safety Prediction)
-
-```python
-def calculate_safety_score(route_features, time_features, weather_features):
-    # Feature engineering
-    combined_features = np.concatenate([route_features, time_features, weather_features])
-    
-    # Apply ensemble model for prediction
-    base_score = ensemble_model.predict(combined_features)
-    
-    # Apply confidence adjustment
-    confidence = ensemble_model.predict_proba(combined_features).max()
-    
-    # Return final score and confidence level
-    return adjusted_score, confidence
-```
-
-### Recent Updates (April 2025)
-
-- **Enhanced UI Responsiveness**: Optimized for both mobile and desktop devices
-- **Improved Time Format**: All times now displayed in 12-hour format for better readability
-- **Robust Error Handling**: Enhanced error management for consistent user experience
-- **Performance Optimizations**: Faster route analyses and smoother dashboard interactions
-- **Expanded Safety Database**: Updated with the latest San Jose traffic incident data
-
-### Example Code (Risk Hotspot Identification)
-
-```python
-def identify_risk_hotspots(latitude, longitude, radius=1.0):
-    # Find incidents within radius
-    nearby_incidents = spatial_index.query_radius(
-        point=(latitude, longitude),
-        radius=radius
-    )
-    
-    # Calculate risk factors
-    if len(nearby_incidents) > threshold:
-        return cluster_incidents(nearby_incidents)
-    else:
-        return []
-```
-
-## 🚀 Deployment
-
-### Current Deployment
-
-- Deployed on Streamlit Cloud: [sjsafecommute.streamlit.app](https://sjsafecommute.streamlit.app/)
-- Automatic updates via GitHub integration
-
-### Cloud Architecture
-
-- Streamlit Cloud for web interface hosting
-- Data processing optimization for faster analytics
-- Session state management for user preferences
-
-### Performance Features
-
-- Data caching for quick response times
-- Optimized visualizations for mobile and desktop
-- Progressive loading of computationally intensive analyses
-
-## 🤝 Contributing
-
-We welcome contributions from:
-
-- Machine Learning & AI Engineers
-- Traffic Safety Experts & Data Scientists
-- Urban Planning Specialists
-- User Experience Designers
-- San Jose Community Safety Advocates
-
-### Development Process
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/YourFeature`)
-3. Implement changes with appropriate tests
-4. Update documentation to reflect new capabilities
-5. Submit pull request with detailed description
-
-### Priority Enhancements
-
-- Advanced ML model training with expanded crash data
-- Real-time safety alerts integration
-- Enhanced mobile responsiveness
-- Multi-language support for diverse San Jose community
+Check out the live app: [sjsafecommute.streamlit.app](https://sjsafecommute.streamlit.app/)
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details
-
-## 📊 Data Sources
-
-- **San Jose Crash Data (2011-2021)**: Comprehensive traffic incident records
-- **San Jose Department of Transportation**: Road safety infrastructure data
-- **California Highway Patrol**: Traffic accident reports and statistics
-- **San Jose Open Data Portal**: Geographical and urban planning information
-
-## 🙏 Acknowledgments
-
-- City of San Jose Department of Transportation
-- San Jose State University Computer Science Department
-- Silicon Valley Traffic Safety Coalition
-- Open Source Machine Learning Community
-
----
-
-Built with ❤️ and AI for San Jose Community Safety
+MIT
