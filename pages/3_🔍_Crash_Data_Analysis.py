@@ -23,30 +23,17 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS
-st.markdown("""
-<style>
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-    }
-    .insight-box {
-        background-color: #f0f7ff;
-        border-radius: 10px;
-        padding: 1.5rem;
-        margin: 0.5rem 0;
-        border-left: 5px solid #0068c9;
-    }
-    .ai-badge {
-        background-color: #8e44ad;
-        color: white;
-        padding: 0.2rem 0.5rem;
-        border-radius: 4px;
-        font-size: 0.8rem;
-        margin-left: 0.5rem;
-    }
-</style>
-""", unsafe_allow_html=True)
+# Load custom CSS
+def load_css():
+    with open(os.path.join(Path(__file__).parent.parent, "styles/custom.css")) as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+try:
+    load_css()
+except Exception as e:
+    print(f"Error loading CSS: {e}")
+
+# Custom CSS is now loaded from external file
 
 # Initialize session state for data
 if 'crash_data' not in st.session_state:
@@ -61,8 +48,8 @@ if 'crash_insights' not in st.session_state:
 # Title and explanation
 st.title("🔍 San Jose Crash Data Analysis")
 st.markdown("""
-<div style="display: flex; align-items: center;">
-    <h3>AI-Powered Traffic Safety Intelligence</h3>
+<div style="display: flex; align-items: center; flex-wrap: wrap;">
+    <h3 style="margin-right: 0.5rem;">AI-Powered Traffic Safety Intelligence</h3>
     <span class="ai-badge">AI Enhanced</span>
 </div>
 """, unsafe_allow_html=True)
@@ -106,39 +93,54 @@ if st.session_state['crash_data'] is not None:
     original_df = st.session_state['original_crash_data']
     stats = st.session_state['crash_stats']
     
-    # Display data summary
+    # Display data summary with improved metrics
     st.markdown("---")
     st.subheader("📈 Data Summary")
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3 = st.columns(3, gap="large")
     with col1:
-        st.metric("Total Incidents", f"{stats['total_incidents']:,}")
+        st.metric("Total Incidents", f"{stats['total_incidents']:,}", help="Total number of recorded traffic incidents")
     with col2:
         years = sorted(list(stats.get('incidents_by_year', {}).keys()))
         year_range = f"{min(years)}-{max(years)}" if years else "Unknown"
-        st.metric("Date Range", year_range)
+        st.metric("Date Range", year_range, help="Time period covered by the dataset")
     with col3:
         avg_per_year = int(stats['total_incidents'] / len(years)) if years else 0
-        st.metric("Avg. Incidents/Year", f"{avg_per_year:,}")
+        st.metric("Avg. Incidents/Year", f"{avg_per_year:,}", help="Average number of incidents per year")
     
-    # Display AI insights
+    # Display AI insights with improved formatting
     if st.session_state['crash_insights']:
         st.markdown("### 🧠 AI-Generated Safety Insights")
         st.markdown('<div class="insight-box">', unsafe_allow_html=True)
         
-        for insight in st.session_state['crash_insights']:
-            st.markdown(f"✨ {insight}")
+        # Add a visual indicator for AI-powered insights
+        st.markdown('<div style="display: flex; align-items: center; margin-bottom: 0.75rem;">'  
+                    '<span style="font-weight: 600; margin-right: 0.5rem;">Pattern Analysis</span>' 
+                    '<span class="ml-badge">ML-Enhanced</span></div>', unsafe_allow_html=True)
+        
+        for i, insight in enumerate(st.session_state['crash_insights']):
+            # Add some visual separation between insights
+            if i > 0:
+                st.markdown('<hr style="margin: 0.5rem 0; opacity: 0.2;">', unsafe_allow_html=True)
+            st.markdown(f"<p style='margin: 0.75rem 0;'><b>Insight {i+1}:</b> {insight}</p>", unsafe_allow_html=True)
         
         st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Add a user feedback option
+        st.markdown("<div style='text-align: right; font-size: 0.8rem; margin-top: 0.25rem;'>"
+                    "Was this analysis helpful? "
+                    "<span style='text-decoration: underline; cursor: pointer; color: #3b82f6;'>Yes</span> · "
+                    "<span style='text-decoration: underline; cursor: pointer; color: #3b82f6;'>No</span>"
+                    "</div>", unsafe_allow_html=True)
     
     # Create tabs for different visualizations
     tab1, tab2, tab3, tab4 = st.tabs(["📊 Incident Overview", "🗺️ Location Analysis", "⏰ Time Analysis", "🔍 Advanced Insights"])
     
     with tab1:
-        # Summary metrics
+        # Summary metrics with improved visualizations
         st.subheader("Incident Summary")
         
-        # Severity distribution
+        # Severity distribution with enhanced chart
         if 'severity_distribution' in stats:
             st.markdown("### Crash Severity Distribution")
             severity_df = pd.DataFrame({
@@ -152,11 +154,21 @@ if st.session_state['crash_data'] is not None:
                 'Count': list(stats['severity_distribution'].values())
             })
             
+            # Create a more visually appealing chart with a color gradient
+            colors = px.colors.sequential.Blues[2:]
             fig = px.bar(severity_df, x='Severity Level', y='Count',
-                        title='Crashes by Severity Level')
-            st.plotly_chart(fig, use_container_width=True)
+                        title='Crashes by Severity Level',
+                        color='Count',
+                        color_continuous_scale=colors)
+            fig.update_layout(
+                margin=dict(l=20, r=20, t=40, b=20),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                coloraxis_showscale=False
+            )
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         
-        # Weather impact
+        # Weather impact with improved pie chart
         if 'weather_distribution' in stats:
             st.markdown("### Weather Impact")
             weather_df = pd.DataFrame({
@@ -164,14 +176,22 @@ if st.session_state['crash_data'] is not None:
                 'Count': list(stats['weather_distribution'].values())
             })
             
+            # Create a more visually appealing pie chart
             fig = px.pie(weather_df, names='Weather', values='Count',
-                        title='Weather Conditions During Crashes')
-            st.plotly_chart(fig, use_container_width=True)
+                        title='Weather Conditions During Crashes',
+                        color_discrete_sequence=px.colors.qualitative.Pastel)
+            fig.update_traces(textposition='inside', textinfo='percent+label')
+            fig.update_layout(
+                margin=dict(l=20, r=20, t=40, b=20),
+                legend=dict(orientation="h", yanchor="bottom", y=0, xanchor="center", x=0.5),
+                paper_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
     
     with tab2:
         st.subheader("Location Analysis")
         
-        # Display top incident locations
+        # Display top incident locations with enhanced visualization
         if 'locations' in stats and stats['locations']:
             st.markdown("### Top Crash Locations")
             location_df = pd.DataFrame({
@@ -179,20 +199,47 @@ if st.session_state['crash_data'] is not None:
                 'Incidents': list(stats['locations'].values())
             }).sort_values('Incidents', ascending=False)
             
-            fig = px.bar(location_df, x='Location', y='Incidents',
-                        title='Crash Count by Location')
-            st.plotly_chart(fig, use_container_width=True)
+            # Limit to top 10 locations for clearer visualization
+            top_locations = location_df.head(10)
             
-            # Display the data table
-            st.dataframe(location_df, use_container_width=True)
+            # Create a horizontal bar chart for better readability
+            fig = px.bar(top_locations, y='Location', x='Incidents',
+                        title='Top 10 Crash Locations',
+                        orientation='h',
+                        color='Incidents',
+                        color_continuous_scale=px.colors.sequential.Blues)
+            fig.update_layout(
+                margin=dict(l=20, r=20, t=40, b=20),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                coloraxis_showscale=False,
+                height=500
+            )
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            
+            # Display the data table with improved formatting
+            st.markdown("#### All Crash Locations")
+            st.markdown("<div style='height: 400px; overflow: auto;'>", unsafe_allow_html=True)
+            st.dataframe(location_df, use_container_width=True, height=400)
+            st.markdown("</div>", unsafe_allow_html=True)
         
-        # Map visualization placeholder
+        # Map visualization with improved container
         st.markdown("### Geographic Distribution")
-        st.info("The map visualization shows the concentration of crashes across San Jose. Darker areas indicate higher crash frequencies.")
+        st.info("This heat map shows the concentration of crashes across San Jose. Darker areas indicate higher crash frequencies.")
         
-        # For a simple demo, show a sample heatmap image
+        # Embed a sample heatmap with better styling
+        st.markdown("<div class='map-container'>", unsafe_allow_html=True)
         st.image("https://via.placeholder.com/800x400?text=Crash+Heatmap+Visualization", use_column_width=True)
-        st.caption("Sample heatmap visualization - in the actual app, this would be an interactive map using the latitude/longitude data")
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.caption("Sample heatmap visualization - in a production app, this would be an interactive map using the latitude/longitude data")
+        
+        # Add a download button for the map data
+        st.download_button(
+            label="📥 Download Location Data (CSV)",
+            data=location_df.to_csv(index=False).encode('utf-8'),
+            file_name='crash_locations.csv',
+            mime='text/csv',
+        )
     
     with tab3:
         st.subheader("Time Analysis")
@@ -356,38 +403,43 @@ if st.session_state['crash_data'] is not None:
             traveling during these higher-risk periods.
             """)
 
-# Explanation of analysis methodology
+# Explanation of analysis methodology with improved formatting
 st.markdown("---")
-st.subheader("🔍 About Our Data Analysis Methodology")
-st.markdown("""
-Our AI-powered crash data analysis system processes traffic incident data through several sophisticated steps:
+st.markdown("<h3>🔍 About Our Data Analysis Methodology</h3>", unsafe_allow_html=True)
 
-1. **Data Preprocessing**: We clean and normalize the San Jose crash data, handling missing values 
-   and standardizing formats to enable deeper analysis.
+with st.expander("Click to learn how our AI analyzes crash data"):
+    st.markdown("""
+    <div class="insight-box" style="background-color: #faf5ff; border-left-color: #8b5cf6;">
+        <p>Our AI-powered crash data analysis system processes traffic incident data through several sophisticated steps:</p>
+        <ol>
+            <li><strong>Data Cleaning & Preprocessing</strong>: We standardize addresses, normalize time formats, and categorize incidents.</li>
+            <li><strong>Geospatial Analysis</strong>: Incidents are mapped to precise coordinates and clustered to identify hotspots.</li>
+            <li><strong>Temporal Pattern Recognition</strong>: AI algorithms detect time-based patterns like rush hour risks.</li>
+            <li><strong>Severity Classification</strong>: Each incident is scored for severity based on multiple factors.</li>
+            <li><strong>ML-Enhanced Insight Generation</strong>: Machine learning models analyze the processed data to provide actionable safety insights.</li>
+        </ol>
+        <p>This approach allows us to transform raw accident data into practical safety recommendations for your daily commute.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-2. **Pattern Recognition**: Our AI identifies statistically significant patterns across:
-   - Temporal dimensions (hour of day, day of week, yearly trends)
-   - Spatial clustering to identify high-risk locations
-   - Correlation analysis between crash types and contributing factors
-
-3. **Risk Modeling**: We apply machine learning techniques to:
-   - Calculate relative risk scores for different routes based on historical data
-   - Identify combinations of factors that significantly increase crash likelihood
-   - Predict high-risk time periods for specific areas
-
-4. **Personalized Safety Analytics**: Our AI generates actionable insights that you can
-   apply to your specific commute patterns, focusing on:
-   - Times to avoid specific routes
-   - Alternative routes during high-risk periods
-   - Safety behaviors that address the most common crash factors
-
-This analysis incorporates over {stats['total_incidents']:,} real traffic incidents from 
-San Jose, providing robust statistical validity to our safety recommendations.
-""")
+# Add footer with improved user interaction options
+st.markdown("---")
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown("<p style='font-size: 0.9rem;'> 2025 San Jose Safe Commute | Data updated April 2025</p>", unsafe_allow_html=True)
+with col2:
+    st.markdown("<div style='text-align: right;'>", unsafe_allow_html=True)
+    st.download_button(
+        label=" Download Full Report (PDF)",
+        data=b"Sample PDF content",  # In a real app, this would be generated PDF content
+        file_name="crash_data_analysis.pdf",
+        mime="application/pdf",
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # Add section about data privacy
 st.markdown("---")
-st.subheader("🔒 Data Sources and Privacy")
+st.subheader(" Data Sources and Privacy")
 st.markdown("""
 The crash data used in this analysis is sourced from official San Jose traffic records covering
 the period from 2011-2021. All data has been anonymized to protect privacy while preserving

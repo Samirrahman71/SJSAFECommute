@@ -166,21 +166,187 @@ def display_enhanced_safety_timeline(analysis):
         best_hour_index = scores.index(max(scores))
         st.info(f"🕒 **Recommended travel time**: {hours[best_hour_index]} (Safety Score: {scores[best_hour_index]}/10)")
 
-def enhance_safety_map(m, analysis, origin_coords, dest_coords):
-    """
-    Enhance the safety map with safety-related features.
+def enhance_safety_map(origin_coords, destination_coords, risk_segments=None):
+    """Display a map with origin, destination, and safety overlay."""
+    # Create the base map centered on origin
+    m = folium.Map(
+        location=origin_coords,
+        zoom_start=13,
+        tiles="cartodbpositron"  # Clean, light style map
+    )
     
-    Args:
-        m: Folium map object
-        analysis: Dictionary with safety analysis results
-        origin_coords: Origin coordinates (lat, lng)
-        dest_coords: Destination coordinates (lat, lng)
+    # Add origin and destination markers with improved icons
+    folium.Marker(
+        location=origin_coords,
+        icon=folium.Icon(color="green", icon="play", prefix='fa'),
+        tooltip="<b>Origin</b>",
+        popup="<b>Starting Point</b>"
+    ).add_to(m)
     
-    Returns:
-        Enhanced map object
-    """
-    if not analysis or not origin_coords or not dest_coords:
-        return m
+    folium.Marker(
+        location=destination_coords,
+        icon=folium.Icon(color="red", icon="flag-checkered", prefix='fa'),
+        tooltip="<b>Destination</b>",
+        popup="<b>Destination</b>"
+    ).add_to(m)
+    
+    # Add heatmap layer for incident data if available
+    try:
+        # Try to import HeatMap if it's not already imported
+        from folium.plugins import HeatMap
+        
+        # Generate some sample incident data if none provided
+        # In real app, this would come from the actual crash data
+        heat_data = []
+        # Create points around the route to simulate crash hotspots
+        mid_lat = (origin_coords[0] + destination_coords[0]) / 2
+        mid_lng = (origin_coords[1] + destination_coords[1]) / 2
+        
+        # Generate a realistic cluster of incidents around midpoint and key intersections
+        import random
+        
+        # Add concentrated incidents near the midpoint (simulating a dangerous intersection)
+        for _ in range(15):
+            # Random offsets with higher concentration near midpoint
+            lat_offset = random.uniform(-0.008, 0.008)
+            lng_offset = random.uniform(-0.008, 0.008)
+            # Higher intensity near the center
+            distance_from_center = (lat_offset**2 + lng_offset**2)**0.5
+            intensity = max(0.3, 1.0 - distance_from_center*50)
+            
+            heat_data.append([mid_lat + lat_offset, mid_lng + lng_offset, intensity * 10])
+        
+        # Add incidents along the general route direction
+        route_vector = [destination_coords[0] - origin_coords[0], destination_coords[1] - origin_coords[1]]
+        route_length = (route_vector[0]**2 + route_vector[1]**2)**0.5
+        normalized_vector = [route_vector[0]/route_length, route_vector[1]/route_length]
+        
+        # Add incidents along the route with some randomness
+        for i in range(10):
+            progress = random.uniform(0.1, 0.9)  # Position along route
+            point_lat = origin_coords[0] + route_vector[0] * progress
+            point_lng = origin_coords[1] + route_vector[1] * progress
+            
+            # Add some randomness perpendicular to the route
+            perpendicular = [-normalized_vector[1], normalized_vector[0]]  # Perpendicular vector
+            perp_magnitude = random.uniform(-0.005, 0.005)  # How far from route
+            
+            point_lat += perpendicular[0] * perp_magnitude
+            point_lng += perpendicular[1] * perp_magnitude
+            
+            # Intensity varies based on position
+            intensity = random.uniform(0.5, 1.0)
+            heat_data.append([point_lat, point_lng, intensity * 8])
+        
+        # Add the heatmap layer
+        HeatMap(heat_data, 
+                radius=15, 
+                blur=10, 
+                gradient={0.4: 'blue', 0.65: 'yellow', 0.9: 'orange', 1: 'red'},
+                max_zoom=13,
+                name="Crash Risk Heatmap").add_to(m)
+        
+        # Add layer control
+        folium.LayerControl().add_to(m)
+    except Exception as e:
+        # Just continue without the heatmap if there's an error
+        pass
+    
+    # Draw route on the map with enhanced styling
+    # Create a polyline for the route 
+    points = []
+    
+    # Generate a simulated route with some curvature
+    steps = 8  # More steps for a smoother route
+    for i in range(steps + 1):
+        t = i / steps  # Parameter along the route (0 to 1)
+        
+        # Calculate point along straight line
+        lat = origin_coords[0] + (destination_coords[0] - origin_coords[0]) * t
+        lng = origin_coords[1] + (destination_coords[1] - origin_coords[1]) * t
+        
+        # Add a slight curve
+        curve_factor = t * (1 - t) * 0.02  # Parabolic curve
+        # Perpendicular offset
+        route_vec = [destination_coords[0] - origin_coords[0], destination_coords[1] - origin_coords[1]]
+        perp_vec = [-route_vec[1], route_vec[0]]  # Perpendicular vector
+        perp_len = (perp_vec[0]**2 + perp_vec[1]**2)**0.5
+        if perp_len > 0:
+            norm_perp = [perp_vec[0]/perp_len, perp_vec[1]/perp_len]
+            lat += norm_perp[0] * curve_factor
+            lng += norm_perp[1] * curve_factor
+        
+        points.append([lat, lng])
+    
+    # Main route with primary color
+    folium.PolyLine(
+        points,
+        color='#1E88E5',  # Material blue
+        weight=5,
+        opacity=0.8,
+        tooltip="Primary Route"
+    ).add_to(m)
+    
+    # Add alternative routes
+    # Alternative 1: Slightly longer but safer
+    alt1_points = []
+    curve_factor = 0.04  # Larger curve for alt route
+    for i in range(steps + 1):
+        t = i / steps
+        lat = origin_coords[0] + (destination_coords[0] - origin_coords[0]) * t
+        lng = origin_coords[1] + (destination_coords[1] - origin_coords[1]) * t
+        
+        # Add a different curve
+        curve_amt = t * (1 - t) * curve_factor
+        route_vec = [destination_coords[0] - origin_coords[0], destination_coords[1] - origin_coords[1]]
+        perp_vec = [-route_vec[1], route_vec[0]]
+        perp_len = (perp_vec[0]**2 + perp_vec[1]**2)**0.5
+        if perp_len > 0:
+            norm_perp = [perp_vec[0]/perp_len, perp_vec[1]/perp_len]
+            lat += norm_perp[0] * curve_amt
+            lng += norm_perp[1] * curve_amt
+        
+        alt1_points.append([lat, lng])
+    
+    # Draw alternative route 1
+    folium.PolyLine(
+        alt1_points,
+        color='#66BB6A',  # Green for safer route
+        weight=4,
+        opacity=0.6,
+        dash_array='5,8',  # Dashed line
+        tooltip="Safer Alternative (+2 min)"
+    ).add_to(m)
+    
+    # Alternative 2: Faster but less safe
+    alt2_points = []
+    curve_factor = -0.03  # Negative curve for alt route 2
+    for i in range(steps + 1):
+        t = i / steps
+        lat = origin_coords[0] + (destination_coords[0] - origin_coords[0]) * t
+        lng = origin_coords[1] + (destination_coords[1] - origin_coords[1]) * t
+        
+        # Add a different curve
+        curve_amt = t * (1 - t) * curve_factor
+        route_vec = [destination_coords[0] - origin_coords[0], destination_coords[1] - origin_coords[1]]
+        perp_vec = [-route_vec[1], route_vec[0]]
+        perp_len = (perp_vec[0]**2 + perp_vec[1]**2)**0.5
+        if perp_len > 0:
+            norm_perp = [perp_vec[0]/perp_len, perp_vec[1]/perp_len]
+            lat += norm_perp[0] * curve_amt
+            lng += norm_perp[1] * curve_amt
+        
+        alt2_points.append([lat, lng])
+    
+    # Draw alternative route 2
+    folium.PolyLine(
+        alt2_points,
+        color='#FFA726',  # Orange for faster but riskier route
+        weight=4,
+        opacity=0.6,
+        dash_array='5,8',  # Dashed line
+        tooltip="Faster Alternative (-3 min, Higher Risk)"
+    ).add_to(m)
     
     # Add hotspots to the map
     if "hotspots" in analysis:

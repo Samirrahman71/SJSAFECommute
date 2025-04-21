@@ -11,9 +11,14 @@ def get_openai_client():
     api_key = os.getenv('OPENAI_API_KEY')
     if not api_key:
         raise ValueError("OPENAI_API_KEY environment variable is not set")
-    # Create a simple client with just the API key
-    client = OpenAI(api_key=api_key)
-    return client
+    
+    try:
+        # Create a simple client with just the API key, no extra parameters
+        client = OpenAI(api_key=api_key)
+        return client
+    except Exception as e:
+        print(f"Error creating OpenAI client: {str(e)}")
+        return None
 
 def get_commute_insights(
     route_info, 
@@ -41,6 +46,21 @@ def get_commute_insights(
     """
     client = get_openai_client()
     
+    # Handle case where client initialization failed
+    if not client:
+        return """Safety Alert: Unable to analyze route conditions accurately.
+
+**Risk Summary**: Route data couldn't be processed. Plan extra time for your journey and check traffic apps.
+
+**Smart Tips**:
+* Use real-time traffic apps as a backup
+* Consider alternative routes if possible
+* Drive with extra caution
+
+**Route Analysis**: Our system is currently unable to analyze this specific route. We recommend checking current conditions through Waze, Google Maps, or local traffic reports.
+
+**Alternative Option**: Consider using VTA public transit for this journey if available."""
+
     system_prompt = """You are "SJCAPP Commute Guru," a friendly, expert assistant for San Jose commuters.
 Provide clear, concise route insights based on the provided traffic, weather, and incident data.
 
@@ -55,6 +75,10 @@ Include specific references to San Jose landmarks and roads mentioned in the inp
 """
 
     try:
+        # Double-check that client exists and has required attributes
+        if not client or not hasattr(client, 'chat') or not hasattr(client.chat, 'completions'):
+            raise AttributeError("OpenAI client missing required attributes")
+            
         response = client.chat.completions.create(
             model=model,
             messages=[
@@ -64,11 +88,26 @@ Route: {route_info}
 Traffic: {traffic_conditions}  
 Weather: {weather_conditions}  
 Incidents: {incidents}
-"""}
+
+Provide commute insights for the above route and conditions."""}    
             ],
             temperature=temperature,
-            max_tokens=max_tokens,
+            max_tokens=max_tokens
         )
         return response.choices[0].message.content
     except Exception as e:
-        return f"Error generating commute insights: {str(e)}"
+        # Return a helpful fallback response if there's an error
+        return f"""Safety Alert: Route analysis incomplete.
+
+**Risk Summary**: We couldn't fully analyze your route from {route_info}. Current conditions may affect travel time.
+
+**Smart Tips**:
+* Check real-time traffic before departing
+* Allow extra travel time for your journey
+* Be alert for {weather_conditions} conditions
+
+**Route Analysis**: Your route may be impacted by {incidents if incidents else "unknown conditions"}. Exercise caution and consider delay possibilities.
+
+**Alternative Option**: Consider alternate routes or transportation methods if available."""
+        # Also log the error for debugging
+        print(f"OpenAI API error: {str(e)}")

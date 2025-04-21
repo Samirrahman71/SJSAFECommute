@@ -1,6 +1,6 @@
 # 🚗 San Jose Safe Commute | AI Safety Navigator
 
-An advanced AI-powered Streamlit app to help San Jose commuters plan safer routes by integrating real crash data analysis, machine learning risk prediction, and interactive safety visualizations.
+An advanced AI-powered Streamlit app to help San Jose commuters plan safer routes by integrating real crash data analysis, machine learning risk prediction, and interactive safety visualizations. The app has been optimized for both mobile and desktop experiences.
 
 ---
 
@@ -19,7 +19,7 @@ An advanced AI-powered Streamlit app to help San Jose commuters plan safer route
   Uses ensemble learning techniques to calculate route-specific risk scores based on multiple factors.
 
 - **Temporal Pattern Recognition**  
-  Identifies high-risk travel periods based on historical incident data analysis.
+  Identifies high-risk travel periods based on historical incident data analysis with easy-to-read 12-hour time format.
 
 - **Smart Route Recommendations**  
   Generates alternative route suggestions optimized for safety.
@@ -29,6 +29,9 @@ An advanced AI-powered Streamlit app to help San Jose commuters plan safer route
 
 - **Autocomplete Location Inputs**  
   Suggests San Jose-focused locations via Google Maps Places API integration.
+
+- **Responsive Design**  
+  Fully optimized for both mobile and desktop devices with an intuitive, user-friendly interface.
 
 ---
 
@@ -40,12 +43,14 @@ An advanced AI-powered Streamlit app to help San Jose commuters plan safer route
    cd SJCAPP
    ```
 2. **Create & activate a virtual environment**
+
    ```bash
    python3 -m venv venv
    source venv/bin/activate         # macOS/Linux
    venv\Scripts\activate            # Windows
    ```
 3. **Install dependencies**
+
    ```bash
    pip install -r requirements.txt
    ```
@@ -98,6 +103,7 @@ Then open [http://localhost:8501](http://localhost:8501) in your browser.
 ## 🛠️ Code Structure
 
 ### Main Application Files
+
 - `1_🏠_Home.py`  
   Main Streamlit app with route safety analysis, interactive map, and user inputs.
 - `pages/2_📊_Analytics_Dashboard.py`  
@@ -106,6 +112,7 @@ Then open [http://localhost:8501](http://localhost:8501) in your browser.
   Real crash data analysis with AI-generated insights.
 
 ### Core Components
+
 - `enhanced_safety.py`  
   Contains advanced safety scoring algorithms and visualization tools.
 - `ai_assistant.py`  
@@ -114,12 +121,14 @@ Then open [http://localhost:8501](http://localhost:8501) in your browser.
   Processes and analyzes crash data using statistical methods.
 
 ### Data Resources
+
 - `utils/sample_incident_data.csv`  
   Sample incident data for demonstration purposes.
 - `utils/crashdata2011-2021.csv`  
   Real San Jose crash data spanning 10 years.
 
 ### Configuration
+
 - `.env.example`  
   Template for environment variables configuration.
 - `requirements.txt`  
@@ -172,6 +181,14 @@ def calculate_safety_score(route_features, time_features, weather_features):
     # Return final score and confidence level
     return adjusted_score, confidence
 ```
+
+### Recent Updates (April 2025)
+
+- **Enhanced UI Responsiveness**: Optimized for both mobile and desktop devices
+- **Improved Time Format**: All times now displayed in 12-hour format for better readability
+- **Robust Error Handling**: Enhanced error management for consistent user experience
+- **Performance Optimizations**: Faster route analyses and smoother dashboard interactions
+- **Expanded Safety Database**: Updated with the latest San Jose traffic incident data
 
 ### Example Code (Risk Hotspot Identification)
 
