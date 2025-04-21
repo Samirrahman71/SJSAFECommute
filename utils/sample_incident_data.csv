@@ -1,0 +1,91 @@
+date,time,location,incident_type,severity,weather,traffic_density
+2025-03-01,07:45,Highway 101 and Tully Road,accident,4,clear,high
+2025-03-01,17:30,280 and 87 interchange,accident,3,clear,high
+2025-03-01,12:15,Story Road and King Road,near_miss,2,clear,medium
+2025-03-02,08:30,Downtown San Jose near SAP Center,accident,3,rain,high
+2025-03-02,18:45,Capitol Expressway near Eastridge Mall,hazard,2,rain,high
+2025-03-02,22:15,Santana Row parking area,theft,2,clear,low
+2025-03-03,07:30,Highway 101 and Tully Road,accident,3,fog,high
+2025-03-03,16:45,280 and 87 interchange,congestion,2,clear,high
+2025-03-03,13:00,San Jose State University area,pedestrian_hazard,2,clear,medium
+2025-03-04,08:15,Highway 101 and 880 interchange,accident,4,clear,high
+2025-03-04,17:30,Stevens Creek Blvd near Valley Fair,congestion,2,clear,high
+2025-03-04,11:45,Downtown San Jose,pedestrian_hazard,2,clear,medium
+2025-03-05,07:45,Highway 101 and Tully Road,congestion,2,rain,high
+2025-03-05,18:30,280 and 87 interchange,accident,3,rain,high
+2025-03-05,14:00,Story Road and King Road,hazard,2,rain,medium
+2025-03-06,07:30,Highway 101 and 880 interchange,accident,4,clear,high
+2025-03-06,17:15,Capitol Expressway near Eastridge Mall,congestion,2,clear,high
+2025-03-06,12:30,Santana Row area,pedestrian_hazard,1,clear,medium
+2025-03-07,08:00,Highway 101 and Tully Road,congestion,2,clear,high
+2025-03-07,18:45,280 and 87 interchange,accident,3,clear,high
+2025-03-07,14:30,San Jose State University area,hazard,1,clear,medium
+2025-03-08,10:15,Highway 101 and 880 interchange,accident,3,clear,medium
+2025-03-08,15:30,Stevens Creek Blvd near Valley Fair,congestion,2,clear,high
+2025-03-08,20:45,Downtown San Jose,theft,2,clear,medium
+2025-03-09,11:00,Highway 101 and Tully Road,hazard,2,clear,low
+2025-03-09,16:15,280 and 87 interchange,congestion,1,clear,medium
+2025-03-09,19:30,Story Road and King Road,theft,2,clear,low
+2025-03-10,07:45,Highway 101 and 880 interchange,accident,4,fog,high
+2025-03-10,17:30,Capitol Expressway near Eastridge Mall,congestion,2,fog,high
+2025-03-10,13:00,Santana Row area,pedestrian_hazard,1,fog,medium
+2025-03-11,08:15,Highway 101 and Tully Road,accident,3,clear,high
+2025-03-11,18:00,280 and 87 interchange,congestion,2,clear,high
+2025-03-11,12:30,San Jose State University area,hazard,1,clear,medium
+2025-03-12,07:30,Highway 101 and 880 interchange,accident,4,rain,high
+2025-03-12,17:15,Stevens Creek Blvd near Valley Fair,accident,3,rain,high
+2025-03-12,13:45,Downtown San Jose,pedestrian_hazard,2,rain,medium
+2025-03-13,08:00,Highway 101 and Tully Road,congestion,2,rain,high
+2025-03-13,18:30,280 and 87 interchange,accident,3,rain,high
+2025-03-13,14:15,Story Road and King Road,hazard,2,rain,medium
+2025-03-14,07:45,Highway 101 and 880 interchange,accident,3,clear,high
+2025-03-14,17:00,Capitol Expressway near Eastridge Mall,congestion,2,clear,high
+2025-03-14,12:15,Santana Row area,theft,1,clear,medium
+2025-03-15,10:30,Highway 101 and Tully Road,hazard,2,clear,medium
+2025-03-15,16:45,280 and 87 interchange,congestion,1,clear,medium
+2025-03-15,20:00,San Jose State University area,theft,2,clear,low
+2025-03-16,11:15,Highway 101 and 880 interchange,hazard,2,clear,low
+2025-03-16,15:30,Stevens Creek Blvd near Valley Fair,congestion,1,clear,medium
+2025-03-16,19:45,Downtown San Jose,theft,2,clear,low
+2025-03-17,07:30,Highway 101 and Tully Road,accident,4,fog,high
+2025-03-17,17:15,280 and 87 interchange,accident,3,fog,high
+2025-03-17,13:00,Story Road and King Road,pedestrian_hazard,2,fog,medium
+2025-03-18,08:00,Highway 101 and 880 interchange,accident,3,clear,high
+2025-03-18,18:30,Capitol Expressway near Eastridge Mall,congestion,2,clear,high
+2025-03-18,14:15,Santana Row area,hazard,1,clear,medium
+2025-03-19,07:45,Highway 101 and Tully Road,accident,3,clear,high
+2025-03-19,17:00,280 and 87 interchange,congestion,2,clear,high
+2025-03-19,12:15,San Jose State University area,pedestrian_hazard,2,clear,medium
+2025-03-20,08:15,Highway 101 and 880 interchange,accident,4,rain,high
+2025-03-20,18:00,Stevens Creek Blvd near Valley Fair,accident,3,rain,high
+2025-03-20,13:45,Downtown San Jose,hazard,2,rain,medium
+2025-03-21,07:30,Highway 101 and Tully Road,congestion,2,rain,high
+2025-03-21,17:15,280 and 87 interchange,accident,3,rain,high
+2025-03-21,14:00,Story Road and King Road,pedestrian_hazard,2,rain,medium
+2025-03-22,10:45,Highway 101 and 880 interchange,hazard,2,clear,medium
+2025-03-22,16:00,Capitol Expressway near Eastridge Mall,congestion,1,clear,medium
+2025-03-22,20:15,Santana Row area,theft,2,clear,low
+2025-03-23,11:30,Highway 101 and Tully Road,hazard,1,clear,low
+2025-03-23,15:45,280 and 87 interchange,congestion,1,clear,medium
+2025-03-23,19:00,San Jose State University area,theft,2,clear,low
+2025-03-24,07:45,Highway 101 and 880 interchange,accident,4,clear,high
+2025-03-24,17:30,Stevens Creek Blvd near Valley Fair,congestion,2,clear,high
+2025-03-24,13:15,Downtown San Jose,pedestrian_hazard,2,clear,medium
+2025-03-25,08:00,Highway 101 and Tully Road,accident,3,fog,high
+2025-03-25,18:15,280 and 87 interchange,accident,3,fog,high
+2025-03-25,12:30,Story Road and King Road,hazard,2,fog,medium
+2025-03-26,07:30,Highway 101 and 880 interchange,accident,4,clear,high
+2025-03-26,17:00,Capitol Expressway near Eastridge Mall,congestion,2,clear,high
+2025-03-26,13:45,Santana Row area,pedestrian_hazard,1,clear,medium
+2025-03-27,08:15,Highway 101 and Tully Road,accident,3,clear,high
+2025-03-27,18:30,280 and 87 interchange,congestion,2,clear,high
+2025-03-27,14:00,San Jose State University area,hazard,1,clear,medium
+2025-03-28,07:45,Highway 101 and 880 interchange,accident,3,rain,high
+2025-03-28,17:15,Stevens Creek Blvd near Valley Fair,accident,3,rain,high
+2025-03-28,12:30,Downtown San Jose,pedestrian_hazard,2,rain,medium
+2025-03-29,10:00,Highway 101 and Tully Road,hazard,2,clear,medium
+2025-03-29,15:15,280 and 87 interchange,congestion,1,clear,medium
+2025-03-29,19:30,Story Road and King Road,theft,2,clear,low
+2025-03-30,11:45,Highway 101 and 880 interchange,hazard,1,clear,low
+2025-03-30,16:00,Capitol Expressway near Eastridge Mall,congestion,1,clear,medium
+2025-03-30,20:15,Santana Row area,theft,2,clear,low

@@ -1,0 +1,11 @@
+streamlit
+scikit-learn
+pandas
+folium
+streamlit-folium
+requests
+python-dotenv
+googlemaps
+plotly
+pytz
+openai
