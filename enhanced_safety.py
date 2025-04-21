@@ -10,7 +10,7 @@ import numpy as np
 from datetime import datetime
 import random
 
-def get_enhanced_safety_analysis(origin, destination, time_of_day, weather, traffic_density):
+def get_enhanced_safety_analysis(origin, destination, time_of_day, weather, traffic_density, mode):
     """
     Generate enhanced safety analysis for a route.
     
@@ -58,9 +58,18 @@ def get_enhanced_safety_analysis(origin, destination, time_of_day, weather, traf
     }
     traffic_factor = traffic_factors.get(traffic_density, 0)
     
+    # Mode factor
+    mode_factors = {
+        'driving': 0,       # Neutral for driving
+        'walking': 0.5,     # Walking generally safer from accidents but more vulnerable
+        'bicycling': -0.8,  # Cycling has higher risk in traffic
+        'transit': 0.3      # Public transit generally safer
+    }
+    mode_factor = mode_factors.get(mode, 0)
+    
     # Calculate final score with a slight random factor for variation
     random_factor = random.uniform(-0.3, 0.3)
-    safety_score = base_score + time_factor + weather_factor + traffic_factor + random_factor
+    safety_score = base_score + time_factor + weather_factor + traffic_factor + mode_factor + random_factor
     
     # Ensure score stays within 1-10 range
     safety_score = max(1.0, min(10.0, safety_score))
@@ -87,6 +96,11 @@ def get_enhanced_safety_analysis(origin, destination, time_of_day, weather, traf
         risk_factors.append(f"{weather.capitalize()} weather conditions impact visibility and road safety")
     if traffic_factor < 0:
         risk_factors.append(f"{traffic_density.capitalize()} traffic density increases accident probability")
+    if mode_factor < 0:
+        if mode == 'bicycling':
+            risk_factors.append("Cycling in urban areas requires extra caution due to traffic interaction")
+        elif mode == 'walking':
+            risk_factors.append("Pedestrians should use designated crossings and remain visible to traffic")
     
     # If no risk factors identified, add a positive note
     if not risk_factors:
@@ -98,7 +112,7 @@ def get_enhanced_safety_analysis(origin, destination, time_of_day, weather, traf
         "safety_level": safety_level,
         "color": color,
         "risk_factors": risk_factors,
-        "recommendations": get_safety_recommendations(safety_score, time_of_day, weather, traffic_density),
+        "recommendations": get_safety_recommendations(safety_score, time_of_day, weather, traffic_density, mode),
         "hotspots": generate_sample_hotspots(),
         "historical_data": generate_historical_data()
     }
@@ -216,7 +230,7 @@ def display_safety_recommendations(analysis):
         st.info("No specific safety recommendations for this route at the current time.")
 
 # Helper functions
-def get_safety_recommendations(safety_score, time_of_day, weather, traffic_density):
+def get_safety_recommendations(safety_score, time_of_day, weather, traffic_density, mode):
     """Generate safety recommendations based on conditions."""
     recommendations = []
     
@@ -232,18 +246,41 @@ def get_safety_recommendations(safety_score, time_of_day, weather, traffic_densi
     
     # Weather-based recommendations
     if weather in ["rain", "fog", "snow", "storm"]:
-        recommendations.append(f"Reduce speed in {weather} conditions and increase following distance")
+        if mode == "driving":
+            recommendations.append(f"Reduce speed in {weather} conditions and increase following distance")
+        elif mode in ["bicycling", "walking"]:
+            recommendations.append(f"Consider alternative transportation in {weather} conditions")
     
     if weather == "fog":
-        recommendations.append("Use low-beam headlights in fog for better visibility")
+        if mode == "driving":
+            recommendations.append("Use low-beam headlights in fog for better visibility")
+        else:
+            recommendations.append("Wear bright or reflective clothing in fog for better visibility")
     
     # Traffic-based recommendations
     if traffic_density == "high":
-        recommendations.append("Stay in your lane and avoid frequent lane changes in heavy traffic")
+        if mode == "driving":
+            recommendations.append("Stay in your lane and avoid frequent lane changes in heavy traffic")
+        elif mode == "bicycling":
+            recommendations.append("Consider using dedicated bike lanes or alternative routes to avoid heavy traffic")
+        elif mode == "walking":
+            recommendations.append("Use pedestrian crossings and be extra cautious when crossing busy streets")
+        elif mode == "transit":
+            recommendations.append("Expect delays in public transit during heavy traffic periods")
     
     # Safety score based recommendations
     if safety_score < 5.0:
         recommendations.append("Consider delaying trip if possible until conditions improve")
+    
+    # Mode-specific recommendations
+    if mode == "driving":
+        recommendations.append("Maintain a safe following distance and avoid distracted driving")
+    elif mode == "bicycling":
+        recommendations.append("Use hand signals, wear a helmet, and follow traffic laws for cyclists")
+    elif mode == "walking":
+        recommendations.append("Stay on sidewalks and use crosswalks whenever possible")
+    elif mode == "transit":
+        recommendations.append("Plan your journey in advance and check for service updates")
     
     # Return 3-5 recommendations
     if len(recommendations) > 5:
