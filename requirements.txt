@@ -9,3 +9,7 @@ googlemaps
 plotly
 pytz
 openai
+shapely
+numpy
+matplotlib
+datetime
