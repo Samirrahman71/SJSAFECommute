@@ -23,7 +23,16 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Navigation is handled in Home.py - do not add navigation here
+# Add custom sidebar with navigation
+with st.sidebar:
+    st.title("San Jose Safe Commute")
+    st.markdown("---")
+    
+    # Navigation links section
+    st.page_link("1_🏠_Home.py", label="Home", icon="🏠")
+    st.page_link("pages/2_📊_Analytics_Dashboard.py", label="Analytics Dashboard", icon="📊")
+    st.page_link("pages/3_🔍_Crash_Data_Analysis.py", label="Crash Data Analysis", icon="🔍")
+    st.page_link("pages/3_📊_Data_Upload_&_AI_Analysis.py", label="Upload & AI Analysis", icon="📊")
 
 # Custom CSS
 st.markdown("""
