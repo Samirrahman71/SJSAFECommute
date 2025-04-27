@@ -1,0 +1,563 @@
+/* Ultra-minimal UI for San Jose Safe Commute */
+
+:root {
+    /* Absolute minimal color palette */
+    --primary: #000000;       /* Black for all text */
+    --surface: #FFFFFF;       /* Pure white background */
+    --background: #FFFFFF;    /* White background everywhere */
+    --border: #CCCCCC;        /* Light gray for minimal borders */
+    --button: #EEEEEE;        /* Light gray for buttons */
+    --button-hover: #DDDDDD;  /* Slightly darker for hover */
+}
+
+/* Base styles for all devices */
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.5;
+    background-color: var(--background);
+    color: var(--primary);
+    -webkit-font-smoothing: antialiased;
+}
+
+.main .block-container {
+    padding: 0;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* Clean white background */
+.stApp {
+    background-color: var(--background);
+}
+
+/* Remove padding from main container */
+.main .block-container {
+    padding: 1rem 0.5rem;
+}
+
+/* Make everything clean and minimal */
+.st-emotion-cache-ue6h4q, .st-emotion-cache-uf99v8, .st-emotion-cache-1wmy9ht,
+.st-emotion-cache-1y4p8pa, .css-15tx938, .css-pg23n {
+    background-color: var(--background) !important;
+}
+
+/* Hide decoration lines */
+.decoration {
+    display: none !important;
+}
+
+/* Remove all non-essential backgrounds */
+[data-testid="stToolbar"], .stStatusWidget,
+.streamlit-expanderHeader, [data-testid="stHeader"],
+[data-testid="stToolbar"], [data-testid="stDecoration"] {
+    background-color: transparent !important;
+    background-image: none !important;
+    border: none !important;
+}
+
+/* Ultra minimal typography */
+p, li, label, div {
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+    font-weight: 400;
+}
+
+/* Secondary text */
+.caption, small, .stCaption {
+    color: var(--primary);
+    font-size: 14px;
+}
+
+/* Simple headings */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--primary);
+    font-weight: 700;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+}
+
+/* Simple form controls */
+select, input, textarea, .stSelectbox div[data-baseweb="select"], .stTextInput input {
+    background-color: var(--surface) !important;
+    color: var(--primary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 4px !important;
+    padding: 8px !important;
+    height: auto !important;
+    font-size: 16px !important;
+}
+
+/* Simple focus states */
+select:focus, input:focus, textarea:focus {
+    border-color: var(--primary) !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Larger touch targets for all controls */
+.stSelectbox, .stTextInput, .stDateInput {
+    margin-bottom: 16px !important;
+}
+
+/* Ultra simple buttons */
+.stButton > button, button[data-baseweb="button"] {
+    background-color: var(--button) !important;
+    color: var(--primary) !important;
+    border: 1px solid var(--border) !important;
+    font-weight: normal !important;
+    padding: 6px 12px !important;
+    height: auto !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    font-size: 16px !important;
+    text-transform: none !important;
+}
+
+/* Simple button hover */
+.stButton > button:hover, button[data-baseweb="button"]:hover {
+    background-color: var(--button-hover) !important;
+    box-shadow: none !important;
+}
+
+/* Secondary buttons */
+.stButton.secondary > button {
+    background-color: var(--surface) !important;
+    color: var(--primary) !important;
+    border: 1px solid var(--border) !important;
+}
+
+/* Large, readable typography */
+p, li, label {
+    font-size: 16px !important;
+    line-height: 1.5 !important;
+    margin-bottom: 0.75rem !important;
+    color: var(--primary) !important;
+}
+
+/* Bold, clear headings */
+h1 {
+    font-size: 24px !important;
+    margin-bottom: 1rem !important;
+    color: var(--primary) !important;
+    font-weight: bold !important;
+}
+
+h2 {
+    font-size: 20px !important;
+    margin-bottom: 0.75rem !important;
+    font-weight: 500 !important;
+}
+
+h3 {
+    font-size: 18px !important;
+    margin-bottom: 0.5rem !important;
+    font-weight: 500 !important;
+}
+
+/* Form elements */
+input, select, textarea, .stSelectbox, .stTextInput {
+    font-size: 16px !important;
+    padding: 0.5rem !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Buttons */
+button, .stButton > button {
+    font-size: 16px !important;
+    padding: 0.5rem 1rem !important;
+    margin-top: 0.5rem !important;
+    margin-bottom: 1rem !important;
+}
+
+/* Simple header with just text */
+.app-header {
+    background-color: var(--surface);
+    color: var(--primary);
+    padding: 20px 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+}
+
+.app-header h1, .app-title {
+    color: var(--primary) !important;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.app-header p, .app-subtitle {
+    color: var(--primary) !important;
+    font-size: 16px;
+    margin-top: 8px;
+    margin-bottom: 0;
+    font-weight: normal;
+}
+
+/* Simple sections with just a border */
+.feature-section {
+    background-color: var(--surface);
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+}
+
+.feature-section h2 {
+    font-size: 20px;
+    margin-bottom: 1rem;
+}
+
+.feature-section ul {
+    padding-left: 2rem;
+    margin-bottom: 1rem;
+}
+
+.feature-section li {
+    margin-bottom: 0.5rem;
+}
+
+.feature-badge {
+    background-color: var(--accent-color);
+    color: white;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-weight: bold;
+    display: none; /* Hide badges for simpler UI */
+}
+
+/* Plain card with just a border */
+.card {
+    background-color: var(--surface);
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+}
+
+.card-header {
+    font-size: 18px;
+    font-weight: bold;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+/* Simple safety score */
+.safety-score {
+    text-align: center;
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    color: var(--primary);
+}
+
+.safety-score h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--white) !important;
+}
+
+.ai-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background-color: var(--neutral-color);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Button styles */
+.primary-button {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Simple timeline */
+.timeline-container {
+    margin: 20px 0;
+}
+
+.time-block {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+}
+
+.time-emoji {
+    margin-right: 0.5rem;
+}
+
+.time-period {
+    flex-grow: 1;
+}
+
+.time-score {
+    font-weight: bold;
+    padding: 0 0.5rem;
+}
+
+/* Input fields */
+.stTextInput > div > div > input, 
+.stSelectbox > div > div > div {
+    border-radius: 8px;
+}
+
+/* Simple departure time display */
+.departure-optimal {
+    background-color: var(--surface);
+    color: var(--primary);
+    padding: 15px;
+    margin-bottom: 20px;
+    text-align: center;
+    border: 1px solid var(--border);
+}
+
+.departure-optimal h3 {
+    font-size: 16px;
+    margin-bottom: 0.5rem;
+    color: rgba(255,255,255,0.9) !important;
+    font-weight: normal;
+}
+
+.departure-optimal h2 {
+    font-size: 28px;
+    margin: 0;
+    font-weight: bold;
+    color: var(--white) !important;
+}
+
+.departure-range {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.departure-time {
+    background-color: var(--surface);
+    padding: 10px;
+    width: 48%;
+    text-align: center;
+    border: 1px solid var(--border);
+}
+
+.departure-time p:first-child {
+    margin: 0 0 0.4rem 0;
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.departure-time p:last-child {
+    margin: 0;
+    font-weight: bold;
+    font-size: 1.3rem;
+}
+
+.departure-duration {
+    background-color: #333333;
+    color: white;
+    padding: 0.75rem;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.departure-duration p:first-child {
+    margin: 0 0 0.4rem 0;
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.departure-duration p:last-child {
+    margin: 0;
+    font-weight: bold;
+    font-size: 1.3rem;
+}
+
+.explanation-card {
+    padding: 1.25rem;
+    background-color: #f8f9fc;
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+    border: 1px solid #e0e0e0;
+}
+
+.explanation-card p {
+    margin: 0;
+    font-size: 1.15rem;
+    line-height: 1.6;
+    color: #333333;
+    font-weight: 400;
+}
+
+/* Map container */
+.map-container {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Slider styles */
+.preference-slider .stSlider {
+    padding-top: 0.5rem;
+    padding-bottom: 2rem;
+}
+
+/* Improve form labels */
+label {
+    font-weight: 600 !important;
+    margin-bottom: 0.5rem !important;
+    display: block !important;
+}
+
+/* Add spacing between form elements */
+.stTextInput, .stSelectbox, .stSlider {
+    margin-bottom: 1.5rem !important;
+}
+
+/* Simple explanation section */
+.explanation-card {
+    background-color: var(--surface);
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+}
+
+/* Remove animations */
+.animate-fadeIn {
+    animation: none;
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+    .app-title {
+        font-size: 1.8rem;
+    }
+    
+    .app-subtitle {
+        font-size: 1.2rem;
+    }
+    
+    /* Improve mobile text */
+    p, li, label {
+        font-size: 1.1rem !important;
+    }
+    
+    .card {
+        padding: 1rem;
+    }
+    
+    .feature-section {
+        padding: 1rem;
+    }
+    
+    .departure-range {
+        flex-direction: row;
+    }
+    
+    .departure-time {
+        padding: 0.5rem;
+    }
+    
+    .departure-optimal h2 {
+        font-size: 1.5rem;
+    }
+    
+    /* Improve touch targets for mobile */
+    .stButton > button {
+        min-height: 3rem;
+    }
+    
+    /* Adjust column layouts for mobile */
+    div[data-testid="column"] {
+        width: 100% !important;
+        flex: 1 1 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Fix padding on mobile */
+    .stTextInput, .stSelectbox {
+        padding-right: 0 !important;
+    }
+}
+
+/* Custom theming for different components */
+.warning-box {
+    background-color: rgba(230, 181, 76, 0.1);
+    border: 1px solid rgba(230, 181, 76, 0.2);
+    border-radius: 8px;
+    padding: 1rem;
+    color: var(--warning-color);
+}
+
+.success-box {
+    background-color: rgba(76, 158, 138, 0.1);
+    border: 1px solid rgba(76, 158, 138, 0.2);
+    border-radius: 8px;
+    padding: 1rem;
+    color: var(--success-color);
+}
+
+.info-box {
+    background-color: rgba(74, 111, 165, 0.1);
+    border: 1px solid rgba(74, 111, 165, 0.2);
+    border-radius: 8px;
+    padding: 1rem;
+    color: var(--primary-color);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Dark mode overrides - simplified */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --primary-color: #6c8fb3;     /* Lighter blue for dark mode */
+        --primary-light: #263545;     /* Darker blue-gray */
+        --accent-color: #7ea6d0;      /* Lighter blue accent */
+        --text-color: #e1e1e1;        /* Light gray for text */
+        --text-light: #a1a1a1;        /* Mid gray for secondary text */
+        --bg-light: #242a33;          /* Dark blue-gray for backgrounds */
+        --bg-white: #1a1a1a;          /* Dark gray for cards */
+        --border-color: #373e47;      /* Darker gray for borders */
+    }
+    
+    .feature-section, .card, .explanation-card {
+        background-color: var(--bg-white);
+        border-color: var(--border-color);
+    }
+    
+    .card-header {
+        border-color: var(--border-color);
+        color: var(--primary-color);
+    }
+    
+    .feature-section h2 {
+        color: var(--primary-color);
+    }
+}

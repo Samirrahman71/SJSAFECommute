@@ -10,7 +10,7 @@ import numpy as np
 import os
 import sys
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 # Add parent directory to import path for direct running
@@ -21,6 +21,7 @@ if parent_dir not in sys.path:
 # Import app components
 from enhanced_safety import get_enhanced_safety_analysis, display_enhanced_safety_timeline, enhance_safety_map, display_safety_recommendations
 import utils  # Import utils for access to the original safety functions
+from utils.departure_advisor import get_departure_recommendation, update_user_preferences
 
 # Initialize session state if it doesn't exist
 if 'last_analysis' not in st.session_state:
@@ -32,6 +33,19 @@ if 'last_origin' not in st.session_state:
     
 if 'last_destination' not in st.session_state:
     st.session_state['last_destination'] = "Santana Row, San Jose"
+    
+# Initialize departure advisor preferences in session state
+if 'schedule_type' not in st.session_state:
+    st.session_state['schedule_type'] = "moderate"
+    
+if 'arrival_time' not in st.session_state:
+    # Default arrival time 30 minutes from now, rounded to nearest 5 minutes
+    now = datetime.now() + timedelta(minutes=30)
+    rounded_minutes = 5 * round(now.minute / 5)
+    now = now.replace(minute=rounded_minutes % 60)
+    if rounded_minutes >= 60:
+        now = now.replace(hour=(now.hour + 1) % 24)
+    st.session_state['arrival_time'] = now.strftime("%I:%M %p").lstrip("0").replace(" 0", " ")
 
 def main():
     """
@@ -46,34 +60,107 @@ def main():
         initial_sidebar_state="expanded"
     )
     
-    # Custom CSS for better UI
-    st.markdown("""
+    # Load custom responsive CSS for better UI on mobile and desktop
+    with open('styles/responsive.css', 'r') as f:
+        custom_css = f.read()
+    
+    st.markdown(f"""
     <style>
-    .main {background-color: #121212; color: white;}
-    .stButton button {width: 100%;}
-    .stProgress .st-bo {background-color: #28a745;}
+    {custom_css}
     </style>
     """, unsafe_allow_html=True)
     
-    # App header
-    st.title("🚦 San Jose Safe Commute")
-    st.subheader("Plan safer routes with AI-powered analysis")
-    
-    # App description
+    # App header with AI emphasis - using custom classes for responsive design
     st.markdown("""
-    Enter your start and end points to get a detailed safety analysis of your route. 
-    Our AI analyzes traffic patterns, time of day, weather conditions, and historical data 
-    to give you personalized safety recommendations and identify the safest travel times.
-    """)
+    <div class="app-header animate-fadeIn">
+        <h1 class="app-title">San Jose Safe Commute</h1>
+        <p class="app-subtitle">Route Safety Analysis</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Add preference learning section using custom classes
+    st.markdown("---")
+    st.markdown("""
+    <div class="feature-section animate-fadeIn">
+        <h2>Your Travel Preferences</h2>
+        <p>Adjust these sliders to set your personal travel priorities. These will help us
+        provide better recommendations for your commute:</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # This text is now included in the HTML above
+    pass
+    
+    # Create columns for preference sliders - wrapped in a card for better visual appearance
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    pref_col1, pref_col2 = st.columns(2)
+    
+    with pref_col1:
+        time_weight = st.slider("Time Efficiency", 0, 100, 50, 5, 
+                             format="%d%%", help="Prioritize fastest routes")
+        safety_weight = st.slider("Safety", 0, 100, 30, 5, 
+                               format="%d%%", help="Prioritize safer routes")
+    
+    with pref_col2:
+        comfort_weight = st.slider("Comfort", 0, 100, 20, 5, 
+                                format="%d%%", help="Prioritize routes with fewer transfers/stops")
+        scenic_weight = st.slider("Scenic Routes", 0, 100, 10, 5, 
+                               format="%d%%", help="Prioritize more scenic routes")
+    
+    # Only update preferences if total is reasonable (80%-120% range)
+    total = time_weight + safety_weight + comfort_weight + scenic_weight
+    if 80 <= total <= 120:
+        # Normalize and update preferences
+        preferences = {
+            "time_efficiency": time_weight / total,
+            "safety": safety_weight / total,
+            "comfort": comfort_weight / total,
+            "scenic": scenic_weight / total
+        }
+        update_user_preferences(preferences)
+        if total != 100:
+            st.info(f"Preferences normalized from {total}% to 100%.")
+    else:
+        st.warning(f"Total preference weight ({total}%) is outside the acceptable range (80-120%). Adjustments not saved.")
+        
+    # Close the card div
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Add footer with version and attribution
+    st.markdown("---")
+    st.markdown("""
+    <div style="display: flex; justify-content: space-between; font-size: 0.8em;">
+        <span> 2025 San Jose Safe Commute</span>
+        <span>Version 2.2.0</span>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Enhanced app description with AI capabilities - in a feature section
+    st.markdown("""
+    <div class="feature-section animate-fadeIn">
+        <h2>Route Safety Analysis</h2>
+        <p>This tool helps you stay safe while traveling in San Jose by providing:</p>
+        <ul style="padding-left: 1.5rem;">
+            <li><strong>Safety Insights</strong>: Based on your specific route</li>
+            <li><strong>Time-of-Day Analysis</strong>: See when it's safest to travel</li>
+            <li><strong>Weather & Traffic</strong>: How conditions affect your commute</li>
+            <li><strong>Practical Tips</strong>: Simple ways to improve your safety</li>
+        </ul>
+        <p>Enter your starting point and destination below to get started:</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Add a spacer for better layout
     st.markdown("<br>", unsafe_allow_html=True)
     
+    # Create a card wrapper for the input section
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    
     # Create a two-column layout for inputs
-    col_input1, col_input2 = st.columns(2)
+    col_input1, col_input2 = st.columns([1, 1])
     
     with col_input1:
-        st.subheader("📍 Route Information")
+        st.markdown('<h3 class="card-header">📍 Route Information</h3>', unsafe_allow_html=True)
         
         # Create a comprehensive list of San Jose addresses for autofill
         san_jose_addresses = [
@@ -212,7 +299,7 @@ def main():
             return default_coords
     
     with col_input2:
-        st.subheader("📅 Travel Conditions")
+        st.markdown('<h3 class="card-header">📅 Travel Conditions</h3>', unsafe_allow_html=True)
         
         # Adding time of day options with descriptive labels
         time_labels = {
@@ -311,8 +398,7 @@ def main():
     except:
         OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
-    # Analysis button - make it more prominent
-    analyze_button = st.button("🔍 Analyze Route Safety", type="primary", use_container_width=True)
+    # This is just a placeholder - the actual button is below
     
     # Convert locations to coordinates using our simulation function
     origin_coords = simulate_geocoding(origin)
@@ -386,6 +472,12 @@ def main():
     
     # Simulate incidents
     incident_coords = create_simulated_incidents(route_coords, count=7)
+    
+    # Analysis button - make it more prominent
+    analyze_button = st.button("Analyze Route Safety", type="primary", use_container_width=True)
+    
+    # Close the card div
+    st.markdown('</div>', unsafe_allow_html=True)
     
     # Only perform analysis when the button is clicked or inputs change
     if analyze_button or 'last_analysis' not in st.session_state or not st.session_state['last_analysis']:
@@ -516,7 +608,7 @@ def main():
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        # Display safety score
+        # Display safety score with AI badge
         score = safety_data.get("safety_score", 7.5)  # Default to moderate score if not available
         color = safety_data.get("color", "yellow")
         
@@ -528,14 +620,22 @@ def main():
         }
         hex_color = color_map.get(color, "#ffc107")
         
-        # Display score
+        # Display score with AI label using custom classes
         st.markdown(f"""
-        <div style="background-color: {hex_color}; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-            <h2 style="margin: 0; color: white; text-align: center;">Safety Score: {score}/10</h2>
+        <div class="safety-score animate-fadeIn" style="background-color: {hex_color};">
+            <div class="ai-badge">
+                <span style="font-family: monospace;">AI-Generated</span>
+            </div>
+            <h2>Safety Score: {score}/10</h2>
         </div>
         """, unsafe_allow_html=True)
         
-        # Display safety timeline with error handling
+        # Display safety timeline with error handling and AI badge - using custom classes
+        st.markdown("""
+        <div class="feature-section animate-fadeIn">
+            <h2>Safety Throughout the Day</h2>
+        """, unsafe_allow_html=True)
+        
         try:
             # Check if time predictions exist
             if "time_predictions" in safety_data and safety_data["time_predictions"]:
@@ -545,12 +645,12 @@ def main():
                 # Show a placeholder timeline with default values
                 default_times = {
                     "time_predictions": {
-                        "5–7 AM": 8.5,
-                        "7–9 AM": 6.2,
-                        "9–4 PM": 7.8,
-                        "4–7 PM": 5.5,
-                        "7–10 PM": 7.2,
-                        "10–5 AM": 8.7
+                        "5:00-7:00 AM": 8.5,
+                        "7:00-9:00 AM": 6.2,
+                        "9:00 AM-4:00 PM": 7.8,
+                        "4:00-7:00 PM": 5.5,
+                        "7:00-10:00 PM": 6.8, 
+                        "10:00 PM-5:00 AM": 5.0
                     }
                 }
                 display_enhanced_safety_timeline(default_times)
@@ -664,6 +764,106 @@ def main():
             tip = random.choice(tips)
             
         st.info(f"💡 **Safety Tip:** {tip}")
+    
+    # Add Personalized Departure Advisor section - using custom classes with complete HTML structure
+    st.markdown("---")
+    st.markdown("""
+    <div class="feature-section animate-fadeIn">
+        <h2>Departure Time Recommendations</h2>
+        <p>Get a personalized recommendation for when to leave based on your schedule and priorities. 
+        This helps you balance arriving on time with staying safe.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Add explanation of the feature directly in the HTML
+    # The previous div is already closed in the HTML
+    
+    # Create a card for departure advisor inputs
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.write("When do you need to arrive at your destination?")
+    advisor_col1, advisor_col2, advisor_col3 = st.columns([1.5, 1, 1])
+    
+    with advisor_col1:
+        # Schedule type with descriptions
+        schedule_type = st.radio(
+            "Schedule Flexibility",
+            options=["strict", "moderate", "flexible"],
+            format_func=lambda x: {
+                "strict": "Must be exactly on time",
+                "moderate": "Can be a few minutes late",
+                "flexible": "Arrival time is flexible"
+            }.get(x, x),
+            index=["strict", "moderate", "flexible"].index(st.session_state.get('schedule_type', "moderate")),
+            horizontal=True
+        )
+        st.session_state['schedule_type'] = schedule_type
+    
+    with advisor_col2:
+        # Arrival time input
+        arrival_time = st.text_input(
+            "Desired Arrival Time",
+            value=st.session_state.get('arrival_time', "9:00 AM"),
+            help="Enter time in format: 9:00 AM or 17:30"
+        )
+        st.session_state['arrival_time'] = arrival_time
+    
+    with advisor_col3:
+        # Generate recommendation button
+        recommend_clicked = st.button("Find Best Departure Time", type="primary")
+        
+    # Close the card div
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Get and display recommendation when the button is clicked
+    if recommend_clicked or ('show_recommendation' in st.session_state and st.session_state['show_recommendation']):
+        st.session_state['show_recommendation'] = True
+        
+        with st.spinner("Generating AI departure recommendation..."):
+            # Get recommendation using the Departure Advisor
+            recommendation = get_departure_recommendation(
+                origin=origin,
+                destination=destination,
+                arrival_time=arrival_time,
+                schedule_type=schedule_type,
+                time_of_day=time_of_day,
+                mode=mode,
+                weather=weather,
+                traffic=traffic_density
+            )
+        
+        # Display the recommendation
+        rec_col1, rec_col2 = st.columns([2, 1])
+        
+        with rec_col1:
+            # Display explanation using custom classes
+            st.markdown(f"""<div class="explanation-card animate-fadeIn">
+                <p>{recommendation['explanation']}</p>
+            </div>""", unsafe_allow_html=True)
+        
+        with rec_col2:
+            # Display the departure times using custom classes for better mobile/desktop experience
+            st.markdown(f"""
+            <div class="departure-optimal animate-fadeIn">
+                <h3>Optimal Departure</h3>
+                <h2>{recommendation['optimal_departure_time']}</h2>
+            </div>
+            
+            <div class="departure-range animate-fadeIn">
+                <div class="departure-time">
+                    <p>Earliest</p>
+                    <p>{recommendation['earliest_departure']}</p>
+                </div>
+                <div class="departure-time">
+                    <p>Latest</p>
+                    <p>{recommendation['latest_departure']}</p>
+                </div>
+            </div>
+            
+            <div class="departure-duration animate-fadeIn">
+                <p>Estimated Trip Duration</p>
+                <p>{recommendation['estimated_duration']} minutes</p>
+            </div>
+            """, unsafe_allow_html=True)
     
     # Display recommendations with error handling
     try:
