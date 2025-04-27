@@ -318,12 +318,6 @@ MIT License - See [LICENSE](LICENSE) for details
 - **California Highway Patrol**: Traffic accident reports and statistics
 - **San Jose Open Data Portal**: Geographical and urban planning information
 
-## 🙏 Acknowledgments
-
-- City of San Jose Department of Transportation
-- San Jose State University Computer Science Department
-- Silicon Valley Traffic Safety Coalition
-- Open Source Machine Learning Community
 
 ---
 
