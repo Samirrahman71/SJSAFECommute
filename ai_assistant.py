@@ -348,13 +348,14 @@ def process_user_uploaded_data(uploaded_file):
     except Exception as e:
         return None, f"Error processing file: {str(e)}"
 
-def generate_ai_insight_from_data(df, stats):
+def generate_ai_insight_from_data(df, stats, custom_data=False):
     """
     Generate AI insights from user uploaded data
     
     Args:
         df: Processed dataframe
         stats: Summary statistics dictionary
+        custom_data: Boolean indicating if this is custom uploaded data rather than San Jose data
         
     Returns:
         List of insights as strings
@@ -368,19 +369,36 @@ def generate_ai_insight_from_data(df, stats):
         try:
             client = openai.OpenAI(api_key=api_key)
             
-            prompt = f"""
-            Analyze the following traffic incident data statistics for San Jose and provide 3-5 key insights
-            that would be valuable for commuters planning their routes.
-            
-            Data summary:
-            {stats_text}
-            
-            Format your response as a list of insights. Focus on actionable information like:
-            - Patterns in incident types, locations, or times
-            - Specific high-risk areas or intersections
-            - Recommended times or routes based on the data
-            - Safety tips relevant to the most common incident types
-            """
+            # Adjust prompt based on data type
+            if custom_data:
+                prompt = f"""
+                Analyze the following traffic or safety incident data statistics and provide 3-5 key insights
+                that would be valuable for understanding patterns and improving safety.
+                
+                Data summary:
+                {stats_text}
+                
+                Format your response as a list of insights. Focus on actionable information like:
+                - Patterns in incident types, locations, or times
+                - Specific high-risk factors identified in the data
+                - Temporal patterns (time of day, day of week, seasonality)
+                - Recommendations for improving safety based on the data
+                - Any unusual or unexpected findings worth investigating further
+                """
+            else:
+                prompt = f"""
+                Analyze the following traffic incident data statistics for San Jose and provide 3-5 key insights
+                that would be valuable for commuters planning their routes.
+                
+                Data summary:
+                {stats_text}
+                
+                Format your response as a list of insights. Focus on actionable information like:
+                - Patterns in incident types, locations, or times
+                - Specific high-risk areas or intersections
+                - Recommended times or routes based on the data
+                - Safety tips relevant to the most common incident types
+                """
             
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
@@ -396,6 +414,7 @@ def generate_ai_insight_from_data(df, stats):
             return insights
             
         except Exception as e:
+            st.error(f"Error generating AI insights: {str(e)}")
             # Fall back to simulated insights
             return generate_simulated_insights(stats)
     else:

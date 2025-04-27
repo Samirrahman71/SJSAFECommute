@@ -23,9 +23,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Navigation is handled in Home.py - do not add navigation here
+
 # Custom CSS
 st.markdown("""
 <style>
+    [data-testid="stSidebarNav"] {display: none !important;}
     .block-container {
         padding-top: 2rem;
         padding-bottom: 2rem;

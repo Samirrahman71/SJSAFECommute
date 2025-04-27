@@ -1,22 +1,31 @@
-/* Ultra-minimal UI for San Jose Safe Commute */
+/* Modern, clean UI for San Jose Safe Commute */
 
 :root {
-    /* Absolute minimal color palette */
-    --primary: #000000;       /* Black for all text */
-    --surface: #FFFFFF;       /* Pure white background */
-    --background: #FFFFFF;    /* White background everywhere */
-    --border: #CCCCCC;        /* Light gray for minimal borders */
-    --button: #EEEEEE;        /* Light gray for buttons */
-    --button-hover: #DDDDDD;  /* Slightly darker for hover */
+    /* Modern color palette */
+    --primary: #1A1A1A;           /* Dark gray for text */
+    --secondary: #4A4A4A;         /* Medium gray for secondary text */
+    --background: #FFFFFF;        /* Clean white background */
+    --surface: #F8F9FA;           /* Very light gray for cards/sections */
+    --border: #E5E7EB;            /* Light gray for borders */
+    --accent: #3B82F6;            /* Blue accent color */
+    --accent-light: #EFF6FF;      /* Very light blue background */
+    --success: #10B981;           /* Green for success states */
+    --warning: #F59E0B;           /* Amber for warnings */
+    --error: #EF4444;             /* Red for errors */
+    --button: #3B82F6;            /* Blue for primary buttons */
+    --button-hover: #2563EB;      /* Darker blue for hover */
+    --button-text: #FFFFFF;       /* White text on buttons */
+    --card-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);  /* Subtle shadow */
 }
 
 /* Base styles for all devices */
 body {
-    font-family: Arial, sans-serif;
-    line-height: 1.5;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    line-height: 1.6;
     background-color: var(--background);
     color: var(--primary);
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .main .block-container {
@@ -100,25 +109,27 @@ select:focus, input:focus, textarea:focus {
     margin-bottom: 16px !important;
 }
 
-/* Ultra simple buttons */
+/* Modern buttons with proper styling */
 .stButton > button, button[data-baseweb="button"] {
     background-color: var(--button) !important;
-    color: var(--primary) !important;
-    border: 1px solid var(--border) !important;
-    font-weight: normal !important;
-    padding: 6px 12px !important;
+    color: var(--button-text) !important;
+    border: none !important;
+    font-weight: 500 !important;
+    padding: 8px 16px !important;
     height: auto !important;
-    border-radius: 4px !important;
+    border-radius: 6px !important;
     cursor: pointer !important;
-    box-shadow: none !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
     font-size: 16px !important;
     text-transform: none !important;
+    transition: all 0.2s ease !important;
 }
 
-/* Simple button hover */
+/* Button hover state */
 .stButton > button:hover, button[data-baseweb="button"]:hover {
     background-color: var(--button-hover) !important;
-    box-shadow: none !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    transform: translateY(-1px) !important;
 }
 
 /* Secondary buttons */
@@ -128,39 +139,73 @@ select:focus, input:focus, textarea:focus {
     border: 1px solid var(--border) !important;
 }
 
-/* Large, readable typography */
+/* Modern, readable typography */
 p, li, label {
     font-size: 16px !important;
-    line-height: 1.5 !important;
-    margin-bottom: 0.75rem !important;
+    line-height: 1.6 !important;
+    margin-bottom: 1rem !important;
     color: var(--primary) !important;
 }
 
-/* Bold, clear headings */
+/* Modern heading hierarchy */
 h1 {
-    font-size: 24px !important;
-    margin-bottom: 1rem !important;
+    font-size: 28px !important;
+    line-height: 1.2 !important;
+    margin-bottom: 1.25rem !important;
     color: var(--primary) !important;
-    font-weight: bold !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
 }
 
 h2 {
-    font-size: 20px !important;
-    margin-bottom: 0.75rem !important;
-    font-weight: 500 !important;
+    font-size: 22px !important;
+    line-height: 1.3 !important;
+    margin-bottom: 1rem !important;
+    color: var(--primary) !important;
+    font-weight: 600 !important;
 }
 
 h3 {
     font-size: 18px !important;
-    margin-bottom: 0.5rem !important;
-    font-weight: 500 !important;
+    line-height: 1.4 !important;
+    margin-bottom: 0.75rem !important;
+    color: var(--primary) !important;
+    font-weight: 600 !important;
 }
 
-/* Form elements */
+/* Improve expander styling */
+.streamlit-expanderHeader {
+    background-color: var(--surface) !important;
+    border-radius: 6px !important;
+    border: 1px solid var(--border) !important;
+    padding: 12px 16px !important;
+    font-weight: 500 !important;
+    color: var(--primary) !important;
+}
+
+/* Improve expander content styling */
+.streamlit-expanderContent {
+    background-color: var(--background) !important;
+    border: 1px solid var(--border) !important;
+    border-top: none !important;
+    border-radius: 0 0 6px 6px !important;
+    padding: 16px !important;
+}
+
+/* Modern form elements */
 input, select, textarea, .stSelectbox, .stTextInput {
     font-size: 16px !important;
-    padding: 0.5rem !important;
-    margin-bottom: 1rem !important;
+    padding: 0.625rem !important;
+    margin-bottom: 1.25rem !important;
+    border-radius: 6px !important;
+    border-color: var(--border) !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+}
+
+input:focus, select:focus, textarea:focus, .stSelectbox:focus, .stTextInput input:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 2px var(--accent-light) !important;
+    outline: none !important;
 }
 
 /* Buttons */
@@ -171,37 +216,40 @@ button, .stButton > button {
     margin-bottom: 1rem !important;
 }
 
-/* Simple header with just text */
+/* Modern header with subtle styling */
 .app-header {
-    background-color: var(--surface);
+    background-color: var(--background);
     color: var(--primary);
-    padding: 20px 0;
-    margin-bottom: 20px;
+    padding: 28px 0 24px;
+    margin-bottom: 28px;
     border-bottom: 1px solid var(--border);
     text-align: center;
 }
 
 .app-header h1, .app-title {
     color: var(--primary) !important;
-    font-size: 24px;
-    font-weight: bold;
+    font-size: 28px;
+    font-weight: 700;
     margin: 0;
+    letter-spacing: -0.01em;
 }
 
 .app-header p, .app-subtitle {
-    color: var(--primary) !important;
+    color: var(--secondary) !important;
     font-size: 16px;
     margin-top: 8px;
     margin-bottom: 0;
     font-weight: normal;
 }
 
-/* Simple sections with just a border */
+/* Modern feature sections with subtle styling */
 .feature-section {
     background-color: var(--surface);
-    padding: 15px;
-    margin-bottom: 20px;
+    padding: 24px;
+    margin-bottom: 28px;
     border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
 }
 
 .feature-section h2 {
@@ -228,37 +276,42 @@ button, .stButton > button {
     display: none; /* Hide badges for simpler UI */
 }
 
-/* Plain card with just a border */
+/* Modern card with subtle elevation */
 .card {
-    background-color: var(--surface);
-    padding: 15px;
-    margin-bottom: 20px;
+    background-color: var(--background);
+    padding: 24px;
+    margin-bottom: 28px;
     border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
 }
 
 .card-header {
     font-size: 18px;
-    font-weight: bold;
+    font-weight: 600;
+    color: var(--primary);
     border-bottom: 1px solid var(--border);
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.25rem;
 }
 
-/* Simple safety score */
+/* Modern safety score card */
 .safety-score {
     text-align: center;
-    padding: 15px;
-    margin-bottom: 20px;
+    padding: 24px;
+    margin-bottom: 28px;
     border: 1px solid var(--border);
-    background-color: var(--surface);
-    color: var(--primary);
+    background-color: var(--accent);
+    color: white;
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
 }
 
 .safety-score h2 {
     margin: 0;
-    font-size: 24px;
-    font-weight: bold;
-    color: var(--white) !important;
+    font-size: 28px;
+    font-weight: 700;
+    color: white !important;
 }
 
 .ai-badge {
@@ -313,26 +366,54 @@ button, .stButton > button {
     padding: 0 0.5rem;
 }
 
-/* Input fields */
+/* Input fields with improved styling */
 .stTextInput > div > div > input, 
 .stSelectbox > div > div > div {
-    border-radius: 8px;
+    border-radius: 6px;
+    border-color: var(--border);
+    padding: 8px 12px;
+    font-size: 16px;
+    transition: all 0.2s ease;
 }
 
-/* Simple departure time display */
+.stTextInput > div > div > input:focus, 
+.stSelectbox > div > div > div:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-light);
+}
+
+/* Improve slider appearance */
+.stSlider [data-baseweb="slider"] {
+    margin-top: 1rem !important;
+}
+
+/* Style the slider track */
+.stSlider [data-baseweb="slider"] [data-testid="stThumbValue"] {
+    background-color: var(--accent) !important;
+    border-color: var(--accent) !important;
+}
+
+/* Add spacing after sliders */
+.stSlider {
+    margin-bottom: 1.5rem !important;
+}
+
+/* Modern departure time display */
 .departure-optimal {
-    background-color: var(--surface);
+    background-color: var(--background);
     color: var(--primary);
-    padding: 15px;
-    margin-bottom: 20px;
+    padding: 24px;
+    margin-bottom: 28px;
     text-align: center;
     border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
 }
 
 .departure-optimal h3 {
     font-size: 16px;
     margin-bottom: 0.5rem;
-    color: rgba(255,255,255,0.9) !important;
+    color: var(--secondary) !important;
     font-weight: normal;
 }
 
@@ -340,7 +421,7 @@ button, .stButton > button {
     font-size: 28px;
     margin: 0;
     font-weight: bold;
-    color: var(--white) !important;
+    color: var(--primary) !important;
 }
 
 .departure-range {
@@ -352,10 +433,12 @@ button, .stButton > button {
 
 .departure-time {
     background-color: var(--surface);
-    padding: 10px;
+    padding: 16px;
     width: 48%;
     text-align: center;
     border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
 }
 
 .departure-time p:first-child {
@@ -371,12 +454,13 @@ button, .stButton > button {
 }
 
 .departure-duration {
-    background-color: #333333;
+    background-color: var(--accent);
     color: white;
     padding: 0.75rem;
     border-radius: 8px;
     text-align: center;
-    border: 1px solid rgba(255,255,255,0.1);
+    border: none;
+    box-shadow: var(--card-shadow);
 }
 
 .departure-duration p:first-child {
@@ -409,10 +493,11 @@ button, .stButton > button {
 
 /* Map container */
 .map-container {
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
+    margin-bottom: 28px;
 }
 
 /* Slider styles */

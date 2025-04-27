@@ -1,883 +1,1058 @@
 """
-San Jose Safe Commute - Enhanced Safety Analysis
-An interactive tool to analyze route safety with AI assistance.
+San Jose Safe Commute - Home Page
+A streamlit app for San Jose commuters to analyze route safety and get AI-powered recommendations.
 """
 
 import streamlit as st
-import folium
 import pandas as pd
 import numpy as np
+import openai
 import os
-import sys
-import json
+import folium
 from datetime import datetime, timedelta
+from streamlit_folium import folium_static
+import json
 from pathlib import Path
-from dotenv import load_dotenv
-# Add parent directory to import path for direct running
-parent_dir = str(Path(__file__).parent)
-if parent_dir not in sys.path:
-    sys.path.append(parent_dir)
+import math
+from folium.plugins import HeatMap, MarkerCluster
+from shapely.geometry import Point, LineString
 
-# Import app components
-from enhanced_safety import get_enhanced_safety_analysis, display_enhanced_safety_timeline, enhance_safety_map, display_safety_recommendations
-import utils  # Import utils for access to the original safety functions
-from utils.departure_advisor import get_departure_recommendation, update_user_preferences
+# Set page configuration
+st.set_page_config(
+    page_title="San Jose Safe Commute",
+    page_icon="🏠",
+    layout="wide"
+)
 
-# Initialize session state if it doesn't exist
-if 'last_analysis' not in st.session_state:
-    # Initialize with default empty dictionary, not None
-    st.session_state['last_analysis'] = {}
+# Initialize session state for user preferences
+if 'preferences' not in st.session_state:
+    st.session_state.preferences = {
+        'time_efficiency': 0.5,
+        'safety': 0.3,
+        'comfort': 0.15,
+        'scenic': 0.05
+    }
 
-if 'last_origin' not in st.session_state:
-    st.session_state['last_origin'] = "Downtown San Jose"
+# Initialize session state for route info
+if 'origin' not in st.session_state:
+    st.session_state.origin = "Downtown San Jose"
+if 'destination' not in st.session_state:
+    st.session_state.destination = "Santana Row"
+if 'transport_mode' not in st.session_state:
+    st.session_state.transport_mode = "driving"
+if 'time_of_day' not in st.session_state:
+    st.session_state.time_of_day = "mid_day"
+if 'weather' not in st.session_state:
+    st.session_state.weather = "clear"
+if 'traffic_density' not in st.session_state:
+    st.session_state.traffic_density = "moderate"
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
+
+# Get OpenAI API key from secrets
+def get_openai_api_key():
+    # Try to get from Streamlit secrets
+    try:
+        return st.secrets["OPENAI_API_KEY"]
+    except:
+        # If not in secrets, try environment variable
+        return os.environ.get("OPENAI_API_KEY")
+
+# Function to update user preferences
+def update_user_preferences(preferences):
+    st.session_state.preferences = preferences
+
+# Function to get coordinates for a location name
+def get_location_coordinates(location):
+    """Get coordinates for a location name"""
+    # Map common San Jose locations to coordinates
+    location_map = {
+        "downtown san jose": [37.3382, -121.8863],
+        "santana row": [37.3209, -121.9476],
+        "san jose state university": [37.3352, -121.8811],
+        "san jose international airport": [37.3639, -121.9289],
+        "willow glen": [37.3094, -121.8990],
+        "japantown": [37.3480, -121.8950],
+        "east san jose": [37.3509, -121.8121],
+        "north san jose": [37.3871, -121.9334],
+        "south san jose": [37.2424, -121.8747],
+        "west san jose": [37.3239, -121.9769],
+        "san jose city hall": [37.3374, -121.8862],
+        "winchester mystery house": [37.3184, -121.9511],
+        "valley fair mall": [37.3261, -121.9465],
+        "communications hill": [37.2924, -121.8583],
+        "alum rock": [37.3772, -121.8244]
+    }
     
-if 'last_destination' not in st.session_state:
-    st.session_state['last_destination'] = "Santana Row, San Jose"
+    # Default coordinates for San Jose downtown
+    default_coords = [37.3382, -121.8863]
     
-# Initialize departure advisor preferences in session state
-if 'schedule_type' not in st.session_state:
-    st.session_state['schedule_type'] = "moderate"
+    # Try to find a match (case insensitive)
+    loc_lower = location.lower()
     
-if 'arrival_time' not in st.session_state:
-    # Default arrival time 30 minutes from now, rounded to nearest 5 minutes
-    now = datetime.now() + timedelta(minutes=30)
-    rounded_minutes = 5 * round(now.minute / 5)
-    now = now.replace(minute=rounded_minutes % 60)
-    if rounded_minutes >= 60:
-        now = now.replace(hour=(now.hour + 1) % 24)
-    st.session_state['arrival_time'] = now.strftime("%I:%M %p").lstrip("0").replace(" 0", " ")
+    # Check for exact matches first
+    if loc_lower in location_map:
+        return location_map[loc_lower]
+    
+    # Check for partial matches
+    for key, coords in location_map.items():
+        if key in loc_lower or loc_lower in key:
+            return coords
+    
+    # Return default if no match
+    return default_coords
 
-def main():
-    """
-    Enhanced safety analysis for San Jose Safe Commute.
-    Run with: streamlit run test_safety.py
-    """
-    # Set page config for a cleaner look
-    st.set_page_config(
-        page_title="San Jose Safe Commute",
-        page_icon="🚦",
-        layout="wide",
-        initial_sidebar_state="expanded"
+# Load crash data
+@st.cache_data
+def load_crash_data():
+    try:
+        df = pd.read_csv('data/crashdata2011-2021.csv')
+        # Convert crash datetime to proper datetime format
+        df['CrashDateTime'] = pd.to_datetime(df['CrashDateTime'])
+        # Extract hour, time of day, etc.
+        df['Hour'] = df['CrashDateTime'].dt.hour
+        df['DayOfWeek'] = df['CrashDateTime'].dt.day_name()
+        
+        # Map hours to time of day categories
+        time_mapping = {
+            'early_morning': list(range(5, 7)),  # 5-6 AM
+            'morning_rush': list(range(7, 9)),  # 7-8 AM
+            'mid_day': list(range(9, 16)),      # 9 AM-3 PM
+            'evening_rush': list(range(16, 19)), # 4-6 PM
+            'evening': list(range(19, 22)),     # 7-9 PM
+            'late_night': list(range(22, 24)) + list(range(0, 5)) # 10 PM-4 AM
+        }
+        
+        # Create time of day category
+        df['TimeOfDay'] = ''
+        for category, hours in time_mapping.items():
+            df.loc[df['Hour'].isin(hours), 'TimeOfDay'] = category
+        
+        # Clean weather data
+        df['Weather'] = df['Weather'].str.lower()
+        df.loc[df['Weather'].str.contains('rain', na=False), 'Weather'] = 'rain'
+        df.loc[df['Weather'].str.contains('snow', na=False), 'Weather'] = 'snow'
+        df.loc[df['Weather'].str.contains('fog', na=False), 'Weather'] = 'fog'
+        df.loc[df['Weather'].str.contains('wind', na=False), 'Weather'] = 'windy'
+        df.loc[~df['Weather'].isin(['rain', 'snow', 'fog', 'windy']), 'Weather'] = 'clear'
+        
+        # Classify injury severity
+        df['InjurySeverity'] = 'none'
+        df.loc[df['MinorInjuries'] > 0, 'InjurySeverity'] = 'minor'
+        df.loc[df['ModerateInjuries'] > 0, 'InjurySeverity'] = 'moderate'
+        df.loc[df['SevereInjuries'] > 0, 'InjurySeverity'] = 'severe'
+        df.loc[df['FatalInjuries'] > 0, 'InjurySeverity'] = 'fatal'
+        
+        return df
+    except Exception as e:
+        st.error(f"Error loading crash data: {e}")
+        # Return empty dataframe with same structure
+        return pd.DataFrame({
+            'CrashDateTime': [], 'Hour': [], 'DayOfWeek': [], 'TimeOfDay': [],
+            'Weather': [], 'InjurySeverity': [], 'Latitude': [], 'Longitude': []
+        })
+
+# Calculate distance between two points in km
+def haversine_distance(lat1, lon1, lat2, lon2):
+    # Convert decimal degrees to radians
+    lat1, lon1, lat2, lon2 = map(math.radians, [lat1, lon1, lat2, lon2])
+    # Haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.asin(math.sqrt(a))
+    r = 6371  # Radius of earth in kilometers
+    return c * r
+
+# Find crashes near a route
+def find_crashes_near_route(df, origin_coords, dest_coords, max_distance_km=1.0):
+    # Create a line between origin and destination
+    route_line = LineString([(origin_coords[1], origin_coords[0]), (dest_coords[1], dest_coords[0])])
+    
+    # Filter for crashes with valid coordinates
+    df = df.dropna(subset=['Latitude', 'Longitude'])
+    
+    # Function to calculate distance from point to line
+    def point_to_line_distance(lat, lon):
+        # Create point
+        point = Point(lon, lat)
+        # Calculate distance to line in degrees
+        distance_degrees = point.distance(route_line)
+        # Approximate conversion to km (rough estimate)
+        # 1 degree at equator is ~111 km, adjust based on latitude
+        distance_km = distance_degrees * 111 * math.cos(math.radians(lat))
+        return distance_km
+    
+    # Calculate distance for each crash
+    df['DistanceToRoute'] = df.apply(
+        lambda row: point_to_line_distance(row['Latitude'], row['Longitude']), 
+        axis=1
     )
     
-    # Load custom responsive CSS for better UI on mobile and desktop
-    with open('styles/responsive.css', 'r') as f:
-        custom_css = f.read()
+    # Filter for crashes near the route
+    near_route = df[df['DistanceToRoute'] <= max_distance_km].copy()
+    return near_route
+
+# Calculate safety scores based on real crash data
+def calculate_safety_scores(crash_data):
+    """
+    Calculate safety scores based on historical crash data for different times of day.
     
-    st.markdown(f"""
-    <style>
-    {custom_css}
-    </style>
-    """, unsafe_allow_html=True)
+    Scoring criteria:
+    1. Crash Frequency (50%): How many crashes occurred during this time period
+    2. Crash Severity (30%): Weighted by injury severity (fatal crashes count more)
+    3. Recency (20%): More recent crashes have a greater impact on the score
     
-    # App header with AI emphasis - using custom classes for responsive design
-    st.markdown("""
-    <div class="app-header animate-fadeIn">
-        <h1 class="app-title">San Jose Safe Commute</h1>
-        <p class="app-subtitle">Route Safety Analysis</p>
-    </div>
-    """, unsafe_allow_html=True)
+    Score range: 1-10 where 10 is safest, 1 is most dangerous
+    """
+    # Define time periods
+    time_periods = [
+        'early_morning',  # 5-7 AM 
+        'morning_rush',   # 7-9 AM
+        'mid_day',        # 9 AM-4 PM
+        'evening_rush',   # 4-7 PM
+        'evening',        # 7-10 PM
+        'late_night'      # 10 PM-5 AM
+    ]
     
-    # Add preference learning section using custom classes
-    st.markdown("---")
-    st.markdown("""
-    <div class="feature-section animate-fadeIn">
-        <h2>Your Travel Preferences</h2>
-        <p>Adjust these sliders to set your personal travel priorities. These will help us
-        provide better recommendations for your commute:</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # This text is now included in the HTML above
-    pass
-    
-    # Create columns for preference sliders - wrapped in a card for better visual appearance
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    pref_col1, pref_col2 = st.columns(2)
-    
-    with pref_col1:
-        time_weight = st.slider("Time Efficiency", 0, 100, 50, 5, 
-                             format="%d%%", help="Prioritize fastest routes")
-        safety_weight = st.slider("Safety", 0, 100, 30, 5, 
-                               format="%d%%", help="Prioritize safer routes")
-    
-    with pref_col2:
-        comfort_weight = st.slider("Comfort", 0, 100, 20, 5, 
-                                format="%d%%", help="Prioritize routes with fewer transfers/stops")
-        scenic_weight = st.slider("Scenic Routes", 0, 100, 10, 5, 
-                               format="%d%%", help="Prioritize more scenic routes")
-    
-    # Only update preferences if total is reasonable (80%-120% range)
-    total = time_weight + safety_weight + comfort_weight + scenic_weight
-    if 80 <= total <= 120:
-        # Normalize and update preferences
-        preferences = {
-            "time_efficiency": time_weight / total,
-            "safety": safety_weight / total,
-            "comfort": comfort_weight / total,
-            "scenic": scenic_weight / total
+    # If no crash data, return default scores
+    if crash_data.empty:
+        return {
+            "early_morning": 8.5,  # Generally safe with low traffic
+            "morning_rush": 6.8,  # Rush hour, moderate risk
+            "mid_day": 7.2,       # Good visibility, moderate traffic
+            "evening_rush": 6.5,  # Highest risk time (rush hour, fatigue)
+            "evening": 7.8,       # Decreasing traffic, some visibility concerns
+            "late_night": 8.7     # Low traffic, but visibility and drowsiness concerns
         }
-        update_user_preferences(preferences)
-        if total != 100:
-            st.info(f"Preferences normalized from {total}% to 100%.")
+    
+    # 1. CRASH FREQUENCY COMPONENT (50% of score)
+    time_counts = crash_data.groupby('TimeOfDay').size().reindex(time_periods).fillna(0)
+    
+    # 2. CRASH SEVERITY COMPONENT (30% of score)
+    # Define severity weights - exponential to emphasize severe crashes
+    severity_weights = {
+        'none': 1,      # Property damage only
+        'minor': 2,     # Minor injuries
+        'moderate': 4,  # Moderate injuries
+        'severe': 8,    # Severe injuries
+        'fatal': 16     # Fatal injuries
+    }
+    
+    # Calculate severity-weighted crash counts
+    def severity_weighted_count(group):
+        return sum(severity_weights.get(severity, 1) for severity in group)
+    
+    severity_counts = crash_data.groupby('TimeOfDay')['InjurySeverity'].agg(
+        severity_weighted_count
+    ).reindex(time_periods).fillna(0)
+    
+    # 3. RECENCY COMPONENT (20% of score)
+    # Calculate years ago for each crash
+    crash_data['YearsAgo'] = (datetime.now() - crash_data['CrashDateTime']).dt.days / 365
+    
+    # More recent crashes get higher weights (exponential decay)
+    def recency_weighted_count(group):
+        return sum(max(0.2, math.exp(-0.3 * years)) for years in group)  # Weight drops to ~30% after 4 years
+    
+    recency_counts = crash_data.groupby('TimeOfDay')['YearsAgo'].agg(
+        recency_weighted_count
+    ).reindex(time_periods).fillna(0)
+    
+    # NORMALIZE ALL COMPONENTS TO 0-1 RANGE (1 is best/safest)
+    # For each metric, higher value = more crashes = less safe
+    if time_counts.max() > 0:
+        normalized_frequency = 1 - (time_counts / time_counts.max())
     else:
-        st.warning(f"Total preference weight ({total}%) is outside the acceptable range (80-120%). Adjustments not saved.")
+        normalized_frequency = pd.Series(1, index=time_periods)
         
-    # Close the card div
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Add footer with version and attribution
-    st.markdown("---")
-    st.markdown("""
-    <div style="display: flex; justify-content: space-between; font-size: 0.8em;">
-        <span> 2025 San Jose Safe Commute</span>
-        <span>Version 2.2.0</span>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Enhanced app description with AI capabilities - in a feature section
-    st.markdown("""
-    <div class="feature-section animate-fadeIn">
-        <h2>Route Safety Analysis</h2>
-        <p>This tool helps you stay safe while traveling in San Jose by providing:</p>
-        <ul style="padding-left: 1.5rem;">
-            <li><strong>Safety Insights</strong>: Based on your specific route</li>
-            <li><strong>Time-of-Day Analysis</strong>: See when it's safest to travel</li>
-            <li><strong>Weather & Traffic</strong>: How conditions affect your commute</li>
-            <li><strong>Practical Tips</strong>: Simple ways to improve your safety</li>
-        </ul>
-        <p>Enter your starting point and destination below to get started:</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Add a spacer for better layout
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Create a card wrapper for the input section
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    
-    # Create a two-column layout for inputs
-    col_input1, col_input2 = st.columns([1, 1])
-    
-    with col_input1:
-        st.markdown('<h3 class="card-header">📍 Route Information</h3>', unsafe_allow_html=True)
+    if severity_counts.max() > 0:
+        normalized_severity = 1 - (severity_counts / severity_counts.max())
+    else:
+        normalized_severity = pd.Series(1, index=time_periods)
         
-        # Create a comprehensive list of San Jose addresses for autofill
-        san_jose_addresses = [
-            "San Jose State University, 1 Washington Square, San Jose, CA 95192",
-            "Nutanix, 1740 Technology Dr, San Jose, CA 95110",
-            "SAP Center, 525 W Santa Clara St, San Jose, CA 95113",
-            "Santana Row, 377 Santana Row, San Jose, CA 95128",
-            "Downtown San Jose, San Jose, CA 95113",
-            "San Jose City Hall, 200 E Santa Clara St, San Jose, CA 95113",
-            "San Jose International Airport, 1701 Airport Blvd, San Jose, CA 95110",
-            "Winchester Mystery House, 525 S Winchester Blvd, San Jose, CA 95128",
-            "The Tech Interactive, 201 S Market St, San Jose, CA 95113",
-            "Japanese Friendship Garden, 1300 Senter Rd, San Jose, CA 95112",
-            "Happy Hollow Park & Zoo, 1300 Senter Rd, San Jose, CA 95112",
-            "Children's Discovery Museum, 180 Woz Way, San Jose, CA 95110",
-            "Alum Rock Park, 15350 Penitencia Creek Rd, San Jose, CA 95127",
-            "Municipal Rose Garden, 1649 Naglee Ave, San Jose, CA 95126",
-            "Willow Glen, Lincoln Avenue, San Jose, CA 95125",
-            "Westfield Valley Fair, 2855 Stevens Creek Blvd, Santa Clara, CA 95050",
-            "Japantown, San Jose, CA 95112",
-            "San Pedro Square Market, 87 N San Pedro St, San Jose, CA 95110",
-            "Communication Hill, San Jose, CA 95136",
-            "Kelley Park, 1300 Senter Rd, San Jose, CA 95112",
-            "Guadalupe River Park, 438 Coleman Ave, San Jose, CA 95110",
-            "Adobe Headquarters, 345 Park Ave, San Jose, CA 95110",
-            "eBay Campus, 2025 Hamilton Ave, San Jose, CA 95125",
-            "PayPal Campus, 2211 N 1st St, San Jose, CA 95131",
-            "Cisco Systems, 170 W Tasman Dr, San Jose, CA 95134",
-            "10th & William, San Jose, CA 95112",
-            "1st & Santa Clara, San Jose, CA 95113",
-            "Capitol Expressway & Tully Rd, San Jose, CA 95121",
-            "Westgate Shopping Center, 1600 Saratoga Ave, San Jose, CA 95129",
-            "Eastridge Mall, 2200 Eastridge Loop, San Jose, CA 95122"
+    if recency_counts.max() > 0:
+        normalized_recency = 1 - (recency_counts / recency_counts.max())
+    else:
+        normalized_recency = pd.Series(1, index=time_periods)
+    
+    # CALCULATE FINAL SCORES - weighted combination of all factors
+    # Scale to 1-10 range where 10 is safest
+    safety_scores = (
+        normalized_frequency * 0.5 +    # Crash frequency (50%)
+        normalized_severity * 0.3 +     # Crash severity (30%)
+        normalized_recency * 0.2        # Crash recency (20%)
+    ) * 9 + 1  # Scale from 0-1 to 1-10
+    
+    # Return as dictionary
+    return safety_scores.to_dict()
+
+# Calculate overall route safety score
+def analyze_route_safety(origin, destination, mode, time_of_day, weather, traffic_density, preferences):
+    """
+    Calculate comprehensive safety score for a route based on multiple factors.
+    
+    Safety Score Components:
+    1. Historical Crash Data (60%): Based on actual crashes along the route
+       - Frequency: Number of crashes in the area
+       - Severity: Injuries and fatalities
+       - Recency: More recent crashes weighted higher
+       - Time of Day: Specific time period safety rating
+    
+    2. Route Characteristics (25%):
+       - Distance: Longer routes generally have higher risk
+       - Mode of Transportation: Different risks for different modes
+       - Road Type: Analysis of road segments along route
+    
+    3. Current Conditions (15%):
+       - Weather: Current weather conditions
+       - Traffic: Current traffic density
+       - Time: Time of day factors
+    
+    Final Score: 1-10 where 10 is safest, 1 is most dangerous
+    """
+    # Get origin and destination coordinates
+    origin_coords = get_location_coordinates(origin)
+    dest_coords = get_location_coordinates(destination)
+    
+    # Load crash data
+    crash_data = load_crash_data()
+    
+    # Find crashes near this route
+    route_crashes = find_crashes_near_route(crash_data, origin_coords, dest_coords)
+    
+    # Calculate route length
+    route_length_km = haversine_distance(
+        origin_coords[0], origin_coords[1],
+        dest_coords[0], dest_coords[1]
+    )
+    route_length_miles = route_length_km * 0.621371
+    
+    #--------------------------------------------------------------------
+    # COMPONENT 1: HISTORICAL CRASH DATA (60% of final score)
+    #--------------------------------------------------------------------
+    
+    # Filter crashes by mode if relevant
+    mode_specific_crashes = route_crashes
+    if mode == "bicycling":
+        bike_crashes = route_crashes[route_crashes['CollisionType'].str.contains('bicycle', case=False, na=False)]
+        if len(bike_crashes) > 5:  # Only use mode-specific if we have enough data
+            mode_specific_crashes = bike_crashes
+    elif mode == "walking":
+        pedestrian_crashes = route_crashes[route_crashes['PedestrianAction'] != 'No Pedestrians Involved']
+        if len(pedestrian_crashes) > 5:
+            mode_specific_crashes = pedestrian_crashes
+    
+    # Calculate safety scores for different times of day
+    time_safety_scores = calculate_safety_scores(mode_specific_crashes)
+    
+    # Base score from current time period
+    base_time_score = time_safety_scores.get(time_of_day, 7.0)
+    
+    # Calculate crash density (crashes per mile of route)
+    crash_count = len(route_crashes)
+    crash_density = crash_count / max(route_length_miles, 0.1)  # Avoid division by zero
+    
+    # Severity ratio - proportion of crashes that were severe or fatal
+    severe_crashes = len(route_crashes[(route_crashes['InjurySeverity'] == 'severe') | 
+                                     (route_crashes['InjurySeverity'] == 'fatal')])
+    severity_ratio = severe_crashes / max(crash_count, 1)
+    
+    # Recent crash trend
+    recent_crashes = len(route_crashes[route_crashes['CrashDateTime'] > (datetime.now() - timedelta(days=365*2))])
+    recent_ratio = recent_crashes / max(crash_count, 1)
+    
+    # Calculate historical crash component (higher is safer)
+    if crash_count > 0:
+        # More crashes, higher severity, more recent = lower score
+        historical_crash_score = base_time_score * (1 - min(1, crash_density/20) * 0.5) * (1 - severity_ratio * 0.3) * (1 - recent_ratio * 0.2)
+    else:
+        # No crash data = use base time score
+        historical_crash_score = base_time_score
+    
+    #--------------------------------------------------------------------
+    # COMPONENT 2: ROUTE CHARACTERISTICS (25% of final score)
+    #--------------------------------------------------------------------
+    
+    # Base route score - starts at 8.0 (generally safe)
+    route_score = 8.0
+    
+    # Distance factor - longer routes have more exposure to risk
+    # Short (<2 miles): +0.5, Medium (2-5 miles): 0, Long (>5 miles): -0.5 to -1.5
+    if route_length_miles < 2:
+        distance_factor = 0.5  # Short routes are safer
+    elif route_length_miles < 5:
+        distance_factor = 0     # Medium routes are neutral
+    else:
+        # Longer routes become progressively less safe
+        distance_factor = max(-1.5, -0.5 - (route_length_miles - 5) * 0.1)
+    
+    # Transportation mode risk factors
+    mode_factors = {
+        "driving": 0,      # Baseline
+        "walking": 0.5,   # Generally safer for short distances
+        "bicycling": -0.5, # Generally higher risk
+        "transit": 0.3    # Generally safer (professional drivers)
+    }
+    
+    # Adjust based on route length
+    if route_length_miles > 3 and mode == "walking":
+        mode_factors["walking"] = -0.5  # Walking becomes less safe for longer distances (fatigue, exposure)
+    if route_length_miles > 5 and mode == "bicycling":
+        mode_factors["bicycling"] = -1.0  # Biking long distances increases risk
+    if route_length_miles > 7 and mode == "transit":
+        mode_factors["transit"] = 0.5  # Transit better for longer distances
+    
+    # Apply route characteristics adjustments
+    route_score += distance_factor + mode_factors.get(mode, 0)
+    
+    #--------------------------------------------------------------------
+    # COMPONENT 3: CURRENT CONDITIONS (15% of final score)
+    #--------------------------------------------------------------------
+    
+    # Base conditions score - starts at 7.5 (moderate)
+    conditions_score = 7.5
+    
+    # Weather risk factors - data-driven if available
+    weather_crash_counts = route_crashes.groupby('Weather').size()
+    total_crashes = len(route_crashes) if len(route_crashes) > 0 else 1
+    
+    # Default weather factors
+    weather_factors = {
+        "clear": 0.5,    # Good conditions
+        "rain": -1.0,   # Reduced visibility and traction
+        "snow": -2.0,   # Significant hazard
+        "fog": -1.5,    # Reduced visibility
+        "windy": -0.5   # Slight hazard
+    }
+    
+    # Refine based on actual crash data if sufficient
+    if total_crashes > 15:
+        for w in weather_factors.keys():
+            weather_count = weather_crash_counts.get(w, 0)
+            proportion = weather_count / total_crashes
+            # If this weather has disproportionate crashes, increase risk factor
+            if proportion > 0.3 and weather_count > 5:  
+                weather_factors[w] = max(-2.5, weather_factors[w] * 1.5)
+    
+    # Traffic density factors
+    traffic_factors = {
+        "low": 1.0,       # Safer
+        "moderate": 0,    # Neutral
+        "high": -1.0      # Higher risk
+    }
+    
+    # Apply conditions adjustments
+    conditions_score += weather_factors.get(weather, 0) + traffic_factors.get(traffic_density, 0)
+    
+    #--------------------------------------------------------------------
+    # FINAL SCORE CALCULATION
+    #--------------------------------------------------------------------
+    
+    # Weighted average of all components
+    combined_score = (
+        historical_crash_score * 0.6 +  # Historical crash data (60%)
+        route_score * 0.25 +            # Route characteristics (25%)
+        conditions_score * 0.15         # Current conditions (15%)
+    )
+    
+    # Apply user preferences to emphasize what they care about
+    if preferences:
+        # User who values safety gets more extreme scores (good routes better, bad routes worse)
+        safety_weight = preferences.get('safety', 0.3)
+        comfort_weight = preferences.get('comfort', 0.15)
+        
+        # Calculate preference adjustment
+        preference_adjustment = (safety_weight + comfort_weight/2) / 0.5  # Normalize to 0-1 scale
+        
+        # Apply preference adjustment
+        if combined_score > 7.0:
+            # Good score gets better if safety is valued
+            combined_score = combined_score + (10 - combined_score) * preference_adjustment * 0.5
+        elif combined_score < 5.0:
+            # Bad score gets worse if safety is valued
+            combined_score = combined_score - (combined_score - 1) * preference_adjustment * 0.5
+    
+    # Ensure score is between 1 and 10
+    final_score = max(1, min(10, combined_score))
+    
+    # Sort times by safety score - use time_safety_scores which was defined earlier
+    recommended_times = sorted(
+        time_safety_scores.items(),
+        key=lambda x: x[1],
+        reverse=True
+    )
+    
+    # Calculate alerts based on crash data
+    recent_crashes = route_crashes[route_crashes['CrashDateTime'] > (datetime.now() - timedelta(days=365*2))]
+    severe_crashes = route_crashes[(route_crashes['InjurySeverity'] == 'severe') | 
+                                 (route_crashes['InjurySeverity'] == 'fatal')]
+    
+    alerts = len(recent_crashes) // 3 + len(severe_crashes)
+    alerts = min(max(alerts, 0), 10)  # Cap between 0-10
+    
+    # Calculate estimated time based on route length and mode
+    speeds = {
+        "driving": 30,  # mph
+        "walking": 3,  # mph
+        "bicycling": 10,  # mph
+        "transit": 15   # mph
+    }
+    
+    base_speed = speeds.get(mode, 20)
+    # Adjust for traffic
+    if mode == "driving" or mode == "transit":
+        if traffic_density == "high":
+            base_speed *= 0.6
+        elif traffic_density == "moderate":
+            base_speed *= 0.8
+    
+    # Calculate time in minutes
+    estimated_time = (route_length_miles / base_speed) * 60
+    
+    # Return the analysis results
+    return {
+        "safety_score": round(final_score, 1),
+        "recommended_times": recommended_times[:3],
+        "route_length": round(route_length_miles, 1),
+        "estimated_time": round(estimated_time),
+        "alerts": alerts,
+        "crash_data": route_crashes,
+        "origin_coords": origin_coords,
+        "dest_coords": dest_coords
+    }
+
+# Generate AI response using OpenAI (simulated if no API key)
+def generate_ai_response(user_query, context):
+    api_key = get_openai_api_key()
+    
+    if not api_key:
+        # Simulate AI response if no API key
+        canned_responses = [
+            f"Based on your preferences, I'd recommend traveling during off-peak hours for the route from {context['origin']} to {context['destination']}.",
+            f"The safest time to travel from {context['origin']} to {context['destination']} by {context['mode']} appears to be late evening or early morning.",
+            f"Given the current {context['weather']} weather and {context['traffic_density']} traffic, you might want to consider taking an alternative route.",
+            "I notice you've prioritized safety in your preferences. Based on historical data, the current route has a moderate safety rating.",
+            "Looking at your route, there are several areas with dedicated bike lanes that would improve your safety when cycling."
         ]
+        return np.random.choice(canned_responses)
+    
+    try:
+        # Use actual OpenAI API
+        client = openai.OpenAI(api_key=api_key)
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant for San Jose commuters, providing safety advice and route recommendations."},
+                {"role": "user", "content": f"Context: Origin: {context['origin']}, Destination: {context['destination']}, Mode: {context['mode']}, Time: {context['time_of_day']}, Weather: {context['weather']}, Traffic: {context['traffic_density']}. User preferences: Time efficiency: {context['preferences']['time_efficiency']*100}%, Safety: {context['preferences']['safety']*100}%, Comfort: {context['preferences']['comfort']*100}%, Scenic value: {context['preferences']['scenic']*100}%. Query: {user_query}"}
+            ],
+            max_tokens=150
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        st.error(f"Error connecting to OpenAI: {e}")
+        return "I'm having trouble connecting to my AI services. Please try again later."
+
+# Main function
+def main():
+    # Clear any automatically generated sidebar
+    st.markdown("""
+        <style>
+        [data-testid="stSidebarNav"] {display: none !important;}
+        </style>
+    """, unsafe_allow_html=True)
+    
+    # Create custom sidebar with navigation
+    with st.sidebar:
+        st.title("San Jose Safe Commute")
+        st.markdown("---")
         
-        # For autofill origin - allow user to type and show matches
-        # Use last origin or default
-        default_origin = st.session_state.get('last_origin', "San Jose State University")
+        # Navigation links section
+        st.page_link("1_🏠_Home.py", label="Home", icon="🏠")
+        st.page_link("pages/2_📊_Analytics_Dashboard.py", label="Analytics Dashboard", icon="📊")
+        st.page_link("pages/3_🔍_Crash_Data_Analysis.py", label="Crash Data Analysis", icon="🔍")
+        st.page_link("pages/3_📊_Data_Upload_&_AI_Analysis.py", label="Upload & AI Analysis", icon="📊")
+    
+    # Main page header - only show the subtitle since title is in sidebar
+    st.markdown("#### AI-powered route safety analysis for San Jose commuters")
+    st.markdown("---")
+    
+    # Main layout - two columns
+    left_col, right_col = st.columns([3, 2])
+    
+    with left_col:
+        # Route input section
+        st.header("Plan Your Route")
         
-        origin_input = st.text_input(
-            "Starting Address", 
-            value=default_origin,
-            placeholder="Start typing any address in San Jose", 
+        # Origin input
+        origin = st.text_input(
+            "Origin",
+            value=st.session_state.origin,
+            placeholder="Enter starting point in San Jose",
             key="origin_input"
         )
+        st.session_state.origin = origin
         
-        # Filter addresses that match what user typed for origin
-        origin_matches = [addr for addr in san_jose_addresses if origin_input.lower() in addr.lower()]
-        
-        # Show dropdown of matched addresses for origin
-        if origin_matches:
-            origin = st.selectbox(
-                "Select from matching addresses", 
-                options=origin_matches,
-                index=0,
-                key="origin_select"
-            )
-        else:
-            # If no matches, use what the user typed
-            origin = origin_input
-        
-        # Store the selected origin
-        st.session_state['last_origin'] = origin
-        
-        # For autofill destination - similar approach
-        # Use last destination or default
-        default_destination = st.session_state.get('last_destination', "Santana Row, San Jose")
-        
-        destination_input = st.text_input(
-            "Destination Address", 
-            value=default_destination,
-            placeholder="Start typing any address in San Jose", 
+        # Destination input
+        destination = st.text_input(
+            "Destination",
+            value=st.session_state.destination,
+            placeholder="Enter destination in San Jose",
             key="destination_input"
         )
+        st.session_state.destination = destination
         
-        # Filter addresses that match what user typed for destination
-        destination_matches = [addr for addr in san_jose_addresses if destination_input.lower() in addr.lower() 
-                              and addr != origin]  # Exclude the origin address
-        
-        # Show dropdown of matched addresses for destination
-        if destination_matches:
-            destination = st.selectbox(
-                "Select from matching addresses", 
-                options=destination_matches,
-                index=0,
-                key="destination_select"
-            )
-        else:
-            # If no matches, use what the user typed
-            destination = destination_input
-            
-        # Store the selected destination
-        st.session_state['last_destination'] = destination
-        
-        # Add a note about address entry
-        st.caption("📍 Type any address, place, or intersection in San Jose for Google Maps-like suggestions")
-        
-        # Improve the geocoding simulation
-        def simulate_geocoding(location):
-            """Simulate geocoding for demonstration purposes"""
-            # Map common San Jose locations to coordinates
-            location_map = {
-                "downtown san jose": [37.3382, -121.8863],
-                "santana row": [37.3209, -121.9476],
-                "san jose state university": [37.3352, -121.8811],
-                "san jose international airport": [37.3639, -121.9289],
-                "willow glen": [37.3094, -121.8990],
-                "japantown": [37.3480, -121.8950],
-                "east san jose": [37.3509, -121.8121],
-                "north san jose": [37.3871, -121.9334],
-                "south san jose": [37.2424, -121.8747],
-                "west san jose": [37.3239, -121.9769],
-                "san jose city hall": [37.3374, -121.8862],
-                "winchester mystery house": [37.3184, -121.9511],
-                "valley fair mall": [37.3261, -121.9465],
-                "communications hill": [37.2924, -121.8583],
-                "alum rock": [37.3772, -121.8244]
-            }
-            
-            # Default coordinates for San Jose downtown
-            default_coords = [37.3382, -121.8863]
-            
-            # Try to find a match (case insensitive)
-            loc_lower = location.lower()
-            
-            # Check for exact matches first
-            if loc_lower in location_map:
-                return location_map[loc_lower]
-            
-            # Check for partial matches
-            for key, coords in location_map.items():
-                if key in loc_lower or loc_lower in key:
-                    return coords
-            
-            # Return default if no match
-            return default_coords
-    
-    with col_input2:
-        st.markdown('<h3 class="card-header">📅 Travel Conditions</h3>', unsafe_allow_html=True)
-        
-        # Adding time of day options with descriptive labels
-        time_labels = {
-            "early_morning": "Early Morning (5-7 AM)",
-            "morning_rush": "Morning Rush Hour (7-9 AM)",
-            "mid_day": "Mid-Day (9 AM-4 PM)",
-            "evening_rush": "Evening Rush Hour (4-7 PM)",
-            "evening": "Evening (7-10 PM)",
-            "late_night": "Late Night (10 PM-5 AM)"
-        }
-        
-        # Get current hour to suggest appropriate time of day
-        current_hour = datetime.now().hour
-        default_time = "mid_day"
-        if 5 <= current_hour < 7:
-            default_time = "early_morning"
-        elif 7 <= current_hour < 9:
-            default_time = "morning_rush"
-        elif 9 <= current_hour < 16:
-            default_time = "mid_day"
-        elif 16 <= current_hour < 19:
-            default_time = "evening_rush"
-        elif 19 <= current_hour < 22:
-            default_time = "evening"
-        else:
-            default_time = "late_night"
-        
-        # Transportation mode with icons
-        mode = st.selectbox(
-            "🚗 Transportation Mode", 
-            ["driving", "walking", "bicycling", "transit"],
+        # Transport mode selection
+        transport_mode = st.selectbox(
+            "Transport Mode",
+            options=["driving", "walking", "bicycling", "transit"],
+            index=["driving", "walking", "bicycling", "transit"].index(st.session_state.transport_mode),
             format_func=lambda x: {
                 "driving": "🚗 Driving",
                 "walking": "🚶 Walking",
                 "bicycling": "🚴 Bicycling",
                 "transit": "🚌 Transit"
             }.get(x, x),
-            index=0
+            key="transport_mode_select"
         )
+        st.session_state.transport_mode = transport_mode
         
-        # Time of day selector with proper labels
-        time_index = list(time_labels.keys()).index(default_time)
-        
+        # Time of day selection
+        time_labels = {
+            "early_morning": "Early Morning (5-7 AM)",
+            "morning_rush": "Morning Rush (7-9 AM)",
+            "mid_day": "Mid-Day (9 AM-4 PM)",
+            "evening_rush": "Evening Rush (4-7 PM)",
+            "evening": "Evening (7-10 PM)",
+            "late_night": "Late Night (10 PM-5 AM)"
+        }
         time_of_day = st.selectbox(
-            "🕰 Time of Day",
-            list(time_labels.keys()),
+            "Time of Day",
+            options=list(time_labels.keys()),
+            index=list(time_labels.keys()).index(st.session_state.time_of_day),
             format_func=lambda x: time_labels.get(x, x),
-            index=time_index
+            key="time_of_day_select"
         )
+        st.session_state.time_of_day = time_of_day
         
-        # Weather condition with icons
-        default_weather = 'clear'
-        weather_options = ["clear", "rain", "fog", "snow", "storm"]
-        weather_index = weather_options.index(default_weather)
-        
+        # Weather condition selection
         weather = st.selectbox(
-            "🌤️ Weather Condition",
-            weather_options,
+            "Weather Condition",
+            options=["clear", "rain", "snow", "fog", "windy"],
+            index=["clear", "rain", "snow", "fog", "windy"].index(st.session_state.weather),
             format_func=lambda x: {
                 "clear": "☀️ Clear",
-                "rain": "🌧️ Rain",
-                "fog": "🌫️ Fog",
+                "rain": "🌧 Rain",
                 "snow": "❄️ Snow",
-                "storm": "⚡ Storm"
+                "fog": "🌫 Fog",
+                "windy": "💨 Windy"
             }.get(x, x),
-            index=weather_index
+            key="weather_select"
         )
+        st.session_state.weather = weather
         
-        # Traffic density with visual cues
-        default_traffic = 'medium'
-        traffic_options = ["low", "medium", "high"]
-        traffic_index = traffic_options.index(default_traffic)
-        
+        # Traffic density selection
         traffic_density = st.selectbox(
-            "🚘 Traffic Density",
-            traffic_options,
+            "Traffic Density",
+            options=["low", "moderate", "high"],
+            index=["low", "moderate", "high"].index(st.session_state.traffic_density),
             format_func=lambda x: {
                 "low": "🟢 Low Traffic",
-                "medium": "🟡 Medium Traffic",
+                "moderate": "🟡 Moderate Traffic",
                 "high": "🔴 Heavy Traffic"
             }.get(x, x),
-            index=traffic_index
+            key="traffic_select"
         )
+        st.session_state.traffic_density = traffic_density
     
-    # Load environment variables
-    load_dotenv()
-
-    # Try to get API keys from Streamlit secrets first, then fall back to environment variables
-    try:
-        GOOGLE_MAPS_API_KEY = st.secrets["GOOGLE_MAPS_API_KEY"]
-    except:
-        GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY')
+    with right_col:
+        # Travel preferences section
+        st.header("Your Travel Preferences")
+        st.markdown("Adjust sliders to personalize your recommendations")
         
-    try:
-        OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
-    except:
-        OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-
-    # This is just a placeholder - the actual button is below
-    
-    # Convert locations to coordinates using our simulation function
-    origin_coords = simulate_geocoding(origin)
-    dest_coords = simulate_geocoding(destination)
-    
-    # Create a simple route by connecting origin and destination with intermediate points
-    def create_simulated_route(origin, destination):
-        """Create a simulated route between two points with a slight curve"""
-        # Extract coordinates
-        start_lat, start_lng = origin
-        end_lat, end_lng = destination
+        # Time efficiency slider
+        time_weight = st.slider(
+            "Time Efficiency",
+            0, 100, 
+            int(st.session_state.preferences["time_efficiency"] * 100),
+            format="%d%%",
+            key="time_efficiency_slider"
+        )
+        st.write(f"► {time_weight}%")
         
-        # Create a list to hold route points
-        route = []
+        # Safety slider
+        safety_weight = st.slider(
+            "Safety",
+            0, 100, 
+            int(st.session_state.preferences["safety"] * 100),
+            format="%d%%",
+            key="safety_slider"
+        )
+        st.write(f"► {safety_weight}%")
         
-        # Add starting point
-        route.append([start_lat, start_lng])
+        # Comfort slider
+        comfort_weight = st.slider(
+            "Comfort",
+            0, 100, 
+            int(st.session_state.preferences["comfort"] * 100),
+            format="%d%%",
+            key="comfort_slider"
+        )
+        st.write(f"► {comfort_weight}%")
         
-        # Create intermediate points for a more realistic route
-        steps = 6  # Number of intermediate points
-        for i in range(1, steps):
-            # Linear interpolation with a slight randomization for curve
-            progress = i / steps
-            lat = start_lat + (end_lat - start_lat) * progress
-            lng = start_lng + (end_lng - start_lng) * progress
-            
-            # Add a slight curve - higher in the middle, less at ends
-            curve_factor = progress * (1 - progress) * 0.01  # Controls curve magnitude
-            perpendicular_offset = curve_factor * 4 * (np.random.random() - 0.5)
-            
-            # Apply perpendicular offset
-            # Simplified - assuming small distances where Earth's curvature doesn't matter much
-            lat += perpendicular_offset
-            lng += perpendicular_offset
-            
-            route.append([lat, lng])
+        # Scenic routes slider
+        scenic_weight = st.slider(
+            "Scenic Routes",
+            0, 100, 
+            int(st.session_state.preferences["scenic"] * 100),
+            format="%d%%",
+            key="scenic_slider"
+        )
+        st.write(f"► {scenic_weight}%")
         
-        # Add ending point
-        route.append([end_lat, end_lng])
-        
-        return route
-    
-    # Create route coordinates
-    route_coords = create_simulated_route(origin_coords, dest_coords)
-    
-    # Create simulated incidents (safety hotspots) along and near route
-    def create_simulated_incidents(route, count=5):
-        """Create simulated safety incidents near the route"""
-        incidents = []
-        
-        # Add incidents along the route
-        for _ in range(count):
-            # Pick a random segment of the route
-            segment_idx = np.random.randint(0, len(route) - 1)
-            point1 = route[segment_idx]
-            point2 = route[segment_idx + 1]
-            
-            # Interpolate a random point along this segment
-            t = np.random.random()  # Value between 0 and 1
-            lat = point1[0] + (point2[0] - point1[0]) * t
-            lng = point1[1] + (point2[1] - point1[1]) * t
-            
-            # Add some random offset to make it near but not exactly on the route
-            offset = 0.005 * (np.random.random() - 0.5)  # About 500m max
-            lat += offset
-            lng += offset
-            
-            incidents.append([lat, lng])
-        
-        return incidents
-    
-    # Simulate incidents
-    incident_coords = create_simulated_incidents(route_coords, count=7)
-    
-    # Analysis button - make it more prominent
-    analyze_button = st.button("Analyze Route Safety", type="primary", use_container_width=True)
-    
-    # Close the card div
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Only perform analysis when the button is clicked or inputs change
-    if analyze_button or 'last_analysis' not in st.session_state or not st.session_state['last_analysis']:
-        with st.spinner("Analyzing route safety..."):
-            try:
-                # Get enhanced analysis using our safety API
-                safety_data = get_enhanced_safety_analysis(
-                    origin=origin,
-                    destination=destination,
-                    time_of_day=time_of_day,
-                    weather=weather,
-                    mode=mode,
-                    traffic_density=traffic_density
-                )
-                
-                # Ensure we got a dictionary back
-                if safety_data is None:
-                    safety_data = {}
-                    st.warning("Could not retrieve AI safety analysis. Using local model.")
-                    
-                    # Fallback to original safety prediction function from utils
-                    # Calculate risk score based on input parameters
-                    risk_score = 5.0  # Base score
-                    
-                    # Adjust based on time of day
-                    time_risk_map = {
-                        "early_morning": -1.5,  # Safer
-                        "morning_rush": 1.5,   # Riskier
-                        "mid_day": 0,         # Neutral
-                        "evening_rush": 2.0,   # Riskier
-                        "evening": 0.5,        # Slightly riskier
-                        "late_night": -1.0     # Safer
-                    }
-                    risk_score += time_risk_map.get(time_of_day, 0)
-                    
-                    # Adjust based on weather
-                    weather_risk_map = {
-                        "clear": 0,      # Neutral
-                        "rain": 1.5,     # Riskier
-                        "fog": 2.0,      # Riskier
-                        "snow": 2.5,     # Much riskier
-                        "storm": 3.0     # Most risky
-                    }
-                    risk_score += weather_risk_map.get(weather, 0)
-                    
-                    # Adjust based on traffic density
-                    traffic_risk_map = {
-                        "low": -1.0,     # Safer
-                        "medium": 0.5,   # Slightly riskier
-                        "high": 2.0      # Much riskier
-                    }
-                    risk_score += traffic_risk_map.get(traffic_density, 0)
-                    
-                    # Normalize to 0-10 scale
-                    risk_score = max(0, min(10, risk_score))
-                    safety_score = 10 - risk_score  # Invert for safety score
-                    
-                    # Generate safety predictions using the original function
-                    risk_factors = {
-                        "time_of_day": time_of_day,
-                        "weather": weather,
-                        "traffic_density": traffic_density,
-                        "day_of_week": datetime.now().strftime("%A").lower()
-                    }
-                    
-                    try:
-                        time_predictions = utils.get_safety_time_predictions(origin, destination, safety_score, risk_factors)
-                        
-                        # Format the time predictions for display
-                        formatted_predictions = {}
-                        for time_label, score in time_predictions.items():
-                            # Convert the time labels to the format used in our UI
-                            formatted_predictions[time_label] = float(score)
-                        
-                        # Build a safety data object compatible with our display functions
-                        safety_data = {
-                            "safety_score": round(safety_score, 1),
-                            "color": "green" if safety_score >= 8 else "yellow" if safety_score >= 6 else "red",
-                            "time_predictions": formatted_predictions,
-                            "alerts": [
-                                {"coords": incident, "text": utils.get_hotspot_tip("high" if i % 3 == 0 else "medium", "evening"), "severity": "high" if i % 3 == 0 else "med"}
-                                for i, incident in enumerate(incident_coords)
-                            ],
-                            "top_reasons": [
-                                f"Traffic density is {traffic_density}",
-                                f"Weather conditions: {weather}",
-                                f"Time of day: {time_labels.get(time_of_day, time_of_day)}"
-                            ],
-                            "tip": {
-                                "badge": "car" if mode == "driving" else "umbrella" if weather in ["rain", "storm"] else "bicycle" if mode == "bicycling" else "car",
-                                "text": utils.get_hotspot_tip("medium", time_of_day)
-                            }
-                        }
-                    except Exception as e:
-                        st.error(f"Error using fallback safety prediction: {str(e)}")
-                
-                # Store in session state
-                st.session_state['last_analysis'] = safety_data
-                st.session_state['last_origin'] = origin
-                st.session_state['last_destination'] = destination
-                st.session_state['route_coords'] = route_coords
-                st.session_state['incident_coords'] = incident_coords
-                st.session_state['origin_coords'] = origin_coords
-                st.session_state['dest_coords'] = dest_coords
-                
-            except Exception as e:
-                st.error(f"Error analyzing route: {str(e)}")
-                safety_data = {}
-    else:
-        # Use cached data
-        safety_data = st.session_state.get('last_analysis', {})
-        origin = st.session_state.get('last_origin', origin)
-        destination = st.session_state.get('last_destination', destination)
-        route_coords = st.session_state.get('route_coords', route_coords)
-        incident_coords = st.session_state.get('incident_coords', incident_coords)
-        origin_coords = st.session_state.get('origin_coords', origin_coords)
-        dest_coords = st.session_state.get('dest_coords', dest_coords)
-        
-    # Ensure safety_data is always a dictionary
-    if not isinstance(safety_data, dict):
-        st.warning("Safety data format is incorrect. Using default values.")
-        safety_data = {}
-    
-    # Display basic information
-    st.header(f"Route: {origin} to {destination}")
-    
-    # Create columns for layout
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        # Display safety score with AI badge
-        score = safety_data.get("safety_score", 7.5)  # Default to moderate score if not available
-        color = safety_data.get("color", "yellow")
-        
-        # Map color to hex
-        color_map = {
-            "green": "#28a745",
-            "yellow": "#ffc107", 
-            "red": "#dc3545"
-        }
-        hex_color = color_map.get(color, "#ffc107")
-        
-        # Display score with AI label using custom classes
-        st.markdown(f"""
-        <div class="safety-score animate-fadeIn" style="background-color: {hex_color};">
-            <div class="ai-badge">
-                <span style="font-family: monospace;">AI-Generated</span>
-            </div>
-            <h2>Safety Score: {score}/10</h2>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Display safety timeline with error handling and AI badge - using custom classes
-        st.markdown("""
-        <div class="feature-section animate-fadeIn">
-            <h2>Safety Throughout the Day</h2>
-        """, unsafe_allow_html=True)
-        
-        try:
-            # Check if time predictions exist
-            if "time_predictions" in safety_data and safety_data["time_predictions"]:
-                display_enhanced_safety_timeline(safety_data)
-            else:
-                st.info("Time-based safety predictions are not available for this route.")
-                # Show a placeholder timeline with default values
-                default_times = {
-                    "time_predictions": {
-                        "5:00-7:00 AM": 8.5,
-                        "7:00-9:00 AM": 6.2,
-                        "9:00 AM-4:00 PM": 7.8,
-                        "4:00-7:00 PM": 5.5,
-                        "7:00-10:00 PM": 6.8, 
-                        "10:00 PM-5:00 AM": 5.0
-                    }
-                }
-                display_enhanced_safety_timeline(default_times)
-        except Exception as e:
-            st.error(f"Could not display safety timeline: {str(e)}")
-    
-    with col2:
-        # Get safety score for determining route color
-        safety_score = safety_data.get("safety_score", 7.5)
-        route_color = "#28a745" if safety_score >= 8 else "#ffc107" if safety_score >= 6 else "#dc3545"
-        
-        # Convert color hex to named colors for folium
-        color_map = {
-            "#28a745": "green",  # Safe
-            "#ffc107": "orange", # Moderate risk
-            "#dc3545": "red"     # High risk
-        }
-        folium_color = color_map.get(route_color, "blue")
-        
-        # Calculate safety color for visual elements
-        route_card_color = "#28a745" if safety_score >= 8 else "#ffc107" if safety_score >= 6 else "#dc3545"
-        
-        # Safety alerts based on the route and conditions
-        # More realistic alert count based on conditions and time of day
-        base_alert_count = 2  # minimum number of alerts
-        
-        # More alerts during risky conditions
-        if time_of_day in ["morning_rush", "evening_rush"]:
-            base_alert_count += 2
-        if weather in ["rain", "fog", "storm"]:
-            base_alert_count += 2
-        if traffic_density == "high":
-            base_alert_count += 1
-        
-        st.markdown(f"""
-        <div style="margin-bottom: 15px; display: flex; align-items: center;">
-            <span style="background-color: #dc3545; color: white; font-weight: bold; padding: 2px 8px; 
-                      border-radius: 10px; margin-right: 10px;">{base_alert_count}</span>
-            <span><b>Safety Alerts</b> potential hazards identified on this route</span>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Create realistic time-based safety predictions
-        # These follow the pattern we've established where early morning and late night are safer than rush hours
-        st.markdown("<b>Recommended Travel Times:</b>", unsafe_allow_html=True)
-        
-        # Define realistic safety scores for each time period
-        # This reflects your requirement that early morning and late night are safer (less traffic)
-        realistic_time_predictions = {
-            "Early Morning (5-7 AM)": 8.5,  # Very safe - light traffic
-            "Morning Rush (7-9 AM)": 5.8,  # Risky - heavy commute traffic
-            "Mid-Day (9 AM-4 PM)": 7.2,  # Moderately safe - steady but manageable traffic
-            "Evening Rush (4-7 PM)": 5.5,  # Most risky - heaviest traffic and fatigue
-            "Evening (7-10 PM)": 7.0,    # Moderately safe - decreasing traffic
-            "Late Night (10 PM-5 AM)": 8.7  # Safest - minimal traffic (though dark)
-        }
-        
-        # Show time predictions from data, or use our realistic fallback
-        time_predictions = safety_data.get("time_predictions", realistic_time_predictions)
-        
-        # Ensure the patterns are correct (early morning and late night MUST be safer)
-        if not isinstance(time_predictions, dict) or len(time_predictions) < 6:
-            time_predictions = realistic_time_predictions
-        
-        # Sort by safety score in descending order to show safest times first
-        sorted_times = sorted(time_predictions.items(), key=lambda x: float(x[1]) if isinstance(x[1], (int, float, str)) else 0, reverse=True)
-        
-        # Display the safest times with color-coding
-        for i, (period, score) in enumerate(sorted_times[:3]):
-            try:
-                score_float = float(score)
-                color = "#28a745" if score_float >= 8 else "#ffc107" if score_float >= 6 else "#dc3545"
-                emojis = {
-                    "Early Morning": "🌅",
-                    "Morning Rush": "🚶‍♂️",
-                    "Mid-Day": "☀️",
-                    "Evening Rush": "🚘",
-                    "Evening": "🌆",
-                    "Late Night": "🌙"
-                }
-                
-                # Find matching emoji
-                emoji = "⏰"
-                for key, value in emojis.items():
-                    if key in period:
-                        emoji = value
-                        break
-                        
-                st.markdown(f"""
-                <div style="background-color: {color}; color: white; border-radius: 5px; padding: 8px; margin-bottom: 8px;">
-                    {emoji} <b>{period}</b> - Safety Score: {score_float}/10
-                </div>
-                """, unsafe_allow_html=True)
-            except (ValueError, TypeError):
-                pass
-                
-        # Safety tip
-        tip = ""
-        if isinstance(safety_data.get("tip"), dict) and "text" in safety_data["tip"]:
-            tip = safety_data["tip"]["text"]
+        # Update preferences
+        total = time_weight + safety_weight + comfort_weight + scenic_weight
+        if 80 <= total <= 120:
+            preferences = {
+                "time_efficiency": time_weight / total,
+                "safety": safety_weight / total,
+                "comfort": comfort_weight / total,
+                "scenic": scenic_weight / total
+            }
+            update_user_preferences(preferences)
+            if total != 100:
+                st.info(f"Preferences normalized from {total}% to 100%.")
         else:
-            # Fallback safety tip
-            tips = [
-                "Maintain safe following distance in all weather conditions.",
-                "Be extra cautious at intersections - most accidents happen there.",
-                "Use turn signals early to communicate your intentions to other drivers.",
-                "Avoid distracted driving, especially in high traffic areas.",
-                "Check traffic reports before departing for your journey."
-            ]
-            import random
-            tip = random.choice(tips)
-            
-        st.info(f"💡 **Safety Tip:** {tip}")
+            st.warning(f"Total preference weight ({total}%) should be between 80-120%")
     
-    # Add Personalized Departure Advisor section - using custom classes with complete HTML structure
+    # Information about the safety score before the analyze button
     st.markdown("---")
-    st.markdown("""
-    <div class="feature-section animate-fadeIn">
-        <h2>Departure Time Recommendations</h2>
-        <p>Get a personalized recommendation for when to leave based on your schedule and priorities. 
-        This helps you balance arriving on time with staying safe.</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.info("""
+    **About Our Safety Scores:** 
+    Our analysis uses real crash data from San Jose (2011-2021) to identify high-risk routes 
+    and recommend safer travel options based on your specific journey and preferences.
+    """)
     
-    # Add explanation of the feature directly in the HTML
-    # The previous div is already closed in the HTML
+    # Analyze button - centered
+    analyze_pressed = st.button(
+        "Analyze Route Safety",
+        type="primary",
+        use_container_width=True,
+        key="analyze_button"
+    )
     
-    # Create a card for departure advisor inputs
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.write("When do you need to arrive at your destination?")
-    advisor_col1, advisor_col2, advisor_col3 = st.columns([1.5, 1, 1])
-    
-    with advisor_col1:
-        # Schedule type with descriptions
-        schedule_type = st.radio(
-            "Schedule Flexibility",
-            options=["strict", "moderate", "flexible"],
-            format_func=lambda x: {
-                "strict": "Must be exactly on time",
-                "moderate": "Can be a few minutes late",
-                "flexible": "Arrival time is flexible"
-            }.get(x, x),
-            index=["strict", "moderate", "flexible"].index(st.session_state.get('schedule_type', "moderate")),
-            horizontal=True
+    # Results section
+    if analyze_pressed:
+        st.markdown("---")
+        st.header("Safety Analysis Results")
+        
+        # Perform the analysis
+        results = analyze_route_safety(
+            origin,
+            destination,
+            transport_mode,
+            time_of_day,
+            weather,
+            traffic_density,
+            st.session_state.preferences
         )
-        st.session_state['schedule_type'] = schedule_type
-    
-    with advisor_col2:
-        # Arrival time input
-        arrival_time = st.text_input(
-            "Desired Arrival Time",
-            value=st.session_state.get('arrival_time', "9:00 AM"),
-            help="Enter time in format: 9:00 AM or 17:30"
+        
+        # Display results in a nice layout
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            safety_score = results['safety_score']
+            # Color-code the safety score
+            if safety_score >= 8.0:
+                st.metric("Safety Score", f"{safety_score}/10", delta="Very Safe", delta_color="normal")
+            elif safety_score >= 6.5:
+                st.metric("Safety Score", f"{safety_score}/10", delta="Moderately Safe", delta_color="normal")
+            elif safety_score >= 5.0:
+                st.metric("Safety Score", f"{safety_score}/10", delta="Use Caution", delta_color="off")
+            elif safety_score >= 3.5:
+                st.metric("Safety Score", f"{safety_score}/10", delta="High Risk", delta_color="inverse")
+            else:
+                st.metric("Safety Score", f"{safety_score}/10", delta="Dangerous", delta_color="inverse")
+        
+        with col2:
+            st.metric("Distance", f"{results['route_length']} miles")
+        
+        with col3:
+            st.metric("Est. Travel Time", f"{results['estimated_time']} mins")
+            
+        # Add explanation of safety score
+        with st.expander("How the Safety Score is Calculated"):
+            st.markdown("""
+            ### Safety Score Methodology
+            
+            Our safety score (1-10 scale where 10 is safest) is based on three major components:
+            
+            #### 1. Historical Crash Data (60% of score)
+            - **Crash Frequency**: Number of crashes along your route
+            - **Crash Severity**: Weight of injuries/fatalities
+            - **Recency**: Recent crashes impact scores more
+            - **Time of Day**: Analysis of when crashes occur
+            
+            #### 2. Route Characteristics (25% of score)
+            - **Distance**: Longer routes typically have higher risk
+            - **Mode of Transportation**: Different safety profiles for driving, walking, etc.
+            - **Route Type**: Road types and infrastructure along your route
+            
+            #### 3. Current Conditions (15% of score)
+            - **Weather**: Current weather impact on safety
+            - **Traffic**: Current traffic density
+            - **Time**: Time of day factors
+            
+            #### User Preferences
+            Your safety preferences also affect how we weight these factors for your specific needs.
+            """)
+        
+        # Safety alerts with more detailed information
+        if results['alerts'] > 0:
+            alert_level = "High" if results['alerts'] > 5 else "Moderate" if results['alerts'] > 2 else "Low"
+            st.warning(f"{results['alerts']} Safety Alerts ({alert_level} Risk): potential hazards identified on this route")
+            
+            # Show specific alerts based on conditions
+            alert_details = []
+            
+            # Mode-specific alerts
+            if transport_mode == "bicycling":
+                alert_details.append("Bicycle crash history detected on this route")
+            elif transport_mode == "walking" and results['route_length'] > 2:
+                alert_details.append("Long walking distance increases exposure to traffic")
+                
+            # Weather alerts
+            if weather == "rain":
+                alert_details.append("Rain reduces visibility and traction")
+            elif weather == "snow":
+                alert_details.append("Snow creates hazardous conditions")
+            elif weather == "fog":
+                alert_details.append("Fog severely reduces visibility")
+                
+            # Traffic alerts
+            if traffic_density == "high":
+                alert_details.append("Heavy traffic increases collision risk")
+                
+            # Time of day alerts
+            if time_of_day == "evening_rush":
+                alert_details.append("Rush hour has historically higher crash rates")
+            elif time_of_day == "late_night":
+                alert_details.append("Limited visibility during night hours")
+                
+            # Display alert details
+            if alert_details:
+                for detail in alert_details[:3]:  # Limit to top 3 alerts
+                    st.markdown(f"⚠️ **Alert:** {detail}")
+        
+        # Recommended time windows
+        st.subheader("Recommended Travel Times")
+        
+        time_cols = st.columns(3)
+        for i, (time_key, score) in enumerate(results['recommended_times']):
+            with time_cols[i]:
+                time_label = time_labels.get(time_key, time_key)
+                if score > 8.0:
+                    st.success(f"{time_label}\nSafety Score: {score}/10")
+                elif score > 7.0:
+                    st.info(f"{time_label}\nSafety Score: {score}/10")
+                else:
+                    st.warning(f"{time_label}\nSafety Score: {score}/10")
+        
+        # Show a detailed map of the route with crash data
+        st.subheader("Route Safety Map")
+        
+        # Extract crash data from results
+        route_crashes = results.get('crash_data', pd.DataFrame())
+        origin_coords = results.get('origin_coords')
+        dest_coords = results.get('dest_coords')
+        
+        # Create a map centered between origin and destination
+        center_lat = (origin_coords[0] + dest_coords[0]) / 2
+        center_lon = (origin_coords[1] + dest_coords[1]) / 2
+        
+        m = folium.Map(
+            location=[center_lat, center_lon],
+            zoom_start=12,
+            tiles="CartoDB positron"
         )
-        st.session_state['arrival_time'] = arrival_time
-    
-    with advisor_col3:
-        # Generate recommendation button
-        recommend_clicked = st.button("Find Best Departure Time", type="primary")
         
-    # Close the card div
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Get and display recommendation when the button is clicked
-    if recommend_clicked or ('show_recommendation' in st.session_state and st.session_state['show_recommendation']):
-        st.session_state['show_recommendation'] = True
+        # Add markers for origin and destination
+        folium.Marker(
+            location=origin_coords,
+            popup=origin,
+            icon=folium.Icon(color="green", icon="play", prefix="fa")
+        ).add_to(m)
         
-        with st.spinner("Generating AI departure recommendation..."):
-            # Get recommendation using the Departure Advisor
-            recommendation = get_departure_recommendation(
-                origin=origin,
-                destination=destination,
-                arrival_time=arrival_time,
-                schedule_type=schedule_type,
-                time_of_day=time_of_day,
-                mode=mode,
-                weather=weather,
-                traffic=traffic_density
-            )
+        folium.Marker(
+            location=dest_coords,
+            popup=destination,
+            icon=folium.Icon(color="red", icon="stop", prefix="fa")
+        ).add_to(m)
         
-        # Display the recommendation
-        rec_col1, rec_col2 = st.columns([2, 1])
+        # Draw a line for the route
+        folium.PolyLine(
+            [origin_coords, dest_coords],
+            color="blue",
+            weight=5,
+            opacity=0.7,
+            popup="Suggested Route"
+        ).add_to(m)
         
-        with rec_col1:
-            # Display explanation using custom classes
-            st.markdown(f"""<div class="explanation-card animate-fadeIn">
-                <p>{recommendation['explanation']}</p>
-            </div>""", unsafe_allow_html=True)
-        
-        with rec_col2:
-            # Display the departure times using custom classes for better mobile/desktop experience
-            st.markdown(f"""
-            <div class="departure-optimal animate-fadeIn">
-                <h3>Optimal Departure</h3>
-                <h2>{recommendation['optimal_departure_time']}</h2>
-            </div>
+        # Add crash data to the map if available
+        if not route_crashes.empty and len(route_crashes) > 0:
+            # Create a marker cluster for crash points
+            marker_cluster = MarkerCluster(
+                name="Crash Locations",
+                overlay=True,
+                control=True,
+                icon_create_function=None
+            ).add_to(m)
             
-            <div class="departure-range animate-fadeIn">
-                <div class="departure-time">
-                    <p>Earliest</p>
-                    <p>{recommendation['earliest_departure']}</p>
-                </div>
-                <div class="departure-time">
-                    <p>Latest</p>
-                    <p>{recommendation['latest_departure']}</p>
-                </div>
-            </div>
+            # Color mapping for injury severity
+            severity_colors = {
+                'none': 'green',
+                'minor': 'blue',
+                'moderate': 'orange',
+                'severe': 'red',
+                'fatal': 'darkred'
+            }
             
-            <div class="departure-duration animate-fadeIn">
-                <p>Estimated Trip Duration</p>
-                <p>{recommendation['estimated_duration']} minutes</p>
-            </div>
-            """, unsafe_allow_html=True)
+            # Add individual crash markers
+            for idx, crash in route_crashes.iterrows():
+                if pd.notna(crash['Latitude']) and pd.notna(crash['Longitude']):
+                    severity = crash.get('InjurySeverity', 'none')
+                    color = severity_colors.get(severity, 'gray')
+                    crash_date = crash['CrashDateTime'].strftime('%Y-%m-%d %H:%M') if 'CrashDateTime' in crash else 'Unknown'
+                    
+                    # Create popup content
+                    popup_content = f"""
+                    <b>Date:</b> {crash_date}<br>
+                    <b>Severity:</b> {severity.title()}<br>
+                    <b>Weather:</b> {crash.get('Weather', 'Unknown')}<br>
+                    <b>Type:</b> {crash.get('CollisionType', 'Unknown')}
+                    """
+                    
+                    # Add marker
+                    folium.CircleMarker(
+                        location=[crash['Latitude'], crash['Longitude']],
+                        radius=5,
+                        color=color,
+                        fill=True,
+                        fill_opacity=0.7,
+                        popup=folium.Popup(popup_content, max_width=300)
+                    ).add_to(marker_cluster)
+            
+            # Add heatmap layer
+            if len(route_crashes) > 3:
+                # Prepare data for heatmap
+                heat_data = [[row['Latitude'], row['Longitude']] for _, row in route_crashes.iterrows() 
+                            if pd.notna(row['Latitude']) and pd.notna(row['Longitude'])]
+                
+                # Add heatmap layer
+                HeatMap(
+                    heat_data,
+                    radius=15,
+                    blur=10,
+                    max_zoom=13,
+                    name="Crash Density"
+                ).add_to(m)
+            
+            # Add layer control
+            folium.LayerControl().add_to(m)
+        
+        # Display the map
+        folium_static(m)
+        
+        # Show crash statistics if available
+        if not route_crashes.empty and len(route_crashes) > 0:
+            st.subheader("Crash Statistics for this Route")
+            
+            # Create columns for stats
+            stats_col1, stats_col2, stats_col3 = st.columns(3)
+            
+            with stats_col1:
+                st.metric("Total Crashes", len(route_crashes))
+                
+                # Count by time of day
+                time_counts = route_crashes['TimeOfDay'].value_counts()
+                worst_time = time_counts.idxmax() if not time_counts.empty else 'Unknown'
+                worst_time_formatted = worst_time.replace('_', ' ').title() if worst_time != 'Unknown' else 'Unknown'
+                st.metric("Highest Crash Time", worst_time_formatted)
+            
+            with stats_col2:
+                # Count by severity
+                severe_count = len(route_crashes[(route_crashes['InjurySeverity'] == 'severe') | 
+                                             (route_crashes['InjurySeverity'] == 'fatal')])
+                st.metric("Severe/Fatal Crashes", severe_count)
+                
+                # Count by weather
+                weather_counts = route_crashes['Weather'].value_counts()
+                worst_weather = weather_counts.idxmax() if not weather_counts.empty else 'Unknown'
+                st.metric("Highest Crash Weather", worst_weather.title())
+            
+            with stats_col3:
+                # Recent crashes (last 2 years)
+                recent = len(route_crashes[route_crashes['CrashDateTime'] > (datetime.now() - timedelta(days=365*2))])
+                st.metric("Recent Crashes (2yr)", recent)
+                
+                # Calculate trend
+                if len(route_crashes) > 0:
+                    yearly_counts = route_crashes.groupby(route_crashes['CrashDateTime'].dt.year).size()
+                    years = sorted(yearly_counts.index)
+                    if len(years) >= 2:
+                        first_year = yearly_counts.get(years[0], 0)
+                        last_year = yearly_counts.get(years[-1], 0)
+                        trend = "Decreasing" if last_year < first_year else "Increasing" if last_year > first_year else "Stable"
+                        st.metric("Crash Trend", trend)
     
-    # Display recommendations with error handling
-    try:
-        if safety_data.get("top_reasons") or safety_data.get("alternatives") or safety_data.get("tip"):
-            display_safety_recommendations(safety_data)
+    # AI Chat section
+    st.markdown("---")
+    st.header("AI Route Assistant")
+    st.markdown("Ask natural language questions about routes and safety")
+    
+    # Display chat history
+    for message in st.session_state.chat_history:
+        if message["role"] == "user":
+            st.chat_message("user").write(message["content"])
         else:
-            st.subheader("🛡️ Safety Recommendations")
-            st.info("Stay alert and follow normal traffic rules when traveling on this route.")
-    except Exception as e:
-        st.error(f"Could not display recommendations: {str(e)}")
+            st.chat_message("assistant").write(message["content"])
     
-    # Display raw data for debugging
-    with st.expander("Raw Safety Data"):
-        st.json(safety_data)
+    # Input for new question
+    user_query = st.chat_input("Ask about routes, e.g., 'Find the safest bike route this afternoon'")
+    
+    if user_query:
+        # Add user message to chat history
+        st.session_state.chat_history.append({"role": "user", "content": user_query})
+        
+        # Display user message
+        st.chat_message("user").write(user_query)
+        
+        # Generate AI response
+        context = {
+            "origin": st.session_state.origin,
+            "destination": st.session_state.destination,
+            "mode": st.session_state.transport_mode,
+            "time_of_day": st.session_state.time_of_day,
+            "weather": st.session_state.weather,
+            "traffic_density": st.session_state.traffic_density,
+            "preferences": st.session_state.preferences
+        }
+        
+        response = generate_ai_response(user_query, context)
+        
+        # Add assistant response to chat history
+        st.session_state.chat_history.append({"role": "assistant", "content": response})
+        
+        # Display assistant response
+        st.chat_message("assistant").write(response)
+    
+    # Footer
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.caption("© 2025 San Jose Safe Commute")
+    with col2:
+        st.caption("Version 2.3.0")
 
 if __name__ == "__main__":
     main()
