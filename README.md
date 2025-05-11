@@ -14,8 +14,6 @@
 
 San Jose Safe Commute is an advanced data-driven application that helps commuters navigate San Jose's streets more safely. By analyzing historical crash data (2011-2021) and applying our proprietary safety scoring algorithm, the app provides personalized safety insights and recommendations for any route in San Jose.
 
-**Live Demo**: [sjsafecommute-samirrahman71.streamlit.app](https://sjsafecommute-samirrahman71.streamlit.app/)
-
 ---
 
 ## 🗠️ Technical Architecture
@@ -71,63 +69,7 @@ San Jose Safe Commute is an advanced data-driven application that helps commuter
 - **Spatiotemporal Pattern Analysis**  
   Uses custom geodesic distance algorithms and time-series pattern detection to identify dangerous route segments and time periods.
 
----
 
-## 💾 Installation & Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/Samirrahman71/SJSAFECommute.git
-cd SJSAFECommute
-
-# Set up virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the application
-streamlit run 1_🏠_Home.py
-```
-
-### Environment Variables
-
-Create a `.env` file with the following variables:
-
-```plaintext
-OPENAI_API_KEY=your_openai_api_key_here
-```
-
-## 🧠 Algorithm Details
-
-### Safety Score Calculation
-
-```python
-def calculate_safety_score(route_data):
-    # 1. Historical Crash Component (60%)
-    historical_score = calculate_historical_component(
-        crash_frequency, crash_severity, crash_recency, time_patterns
-    )
-    
-    # 2. Route Characteristics (25%)
-    route_score = calculate_route_component(
-        distance, transport_mode, road_types, infrastructure
-    )
-    
-    # 3. Current Conditions (15%)
-    conditions_score = calculate_conditions_component(
-        weather, traffic_density, time_of_day
-    )
-    
-    # Calculate weighted final score
-    final_score = (historical_score * 0.6) + 
-                 (route_score * 0.25) + 
-                 (conditions_score * 0.15)
-                 
-    # Normalize to 1-10 scale
-    return max(1, min(10, final_score))
-```
 
 The algorithm uses optimized spatial calculations for performance, including:
 
@@ -285,14 +227,6 @@ def identify_risk_hotspots(latitude, longitude, radius=1.0):
 - Optimized visualizations for mobile and desktop
 - Progressive loading of computationally intensive analyses
 
-## 🤝 Contributing
-
-We welcome contributions from:
-- Machine Learning & AI Engineers
-- Traffic Safety Experts & Data Scientists
-- Urban Planning Specialists
-- User Experience Designers
-- San Jose Community Safety Advocates
 
 ### Development Process
 1. Fork the repository
