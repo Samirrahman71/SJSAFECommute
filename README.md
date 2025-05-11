@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-![App Preview](https://github.com/Samirrahman71/SJSAFECommute/raw/main/assets/preview.png)
+ app: sjsafecommute.streamlit.app
 
 ## 🛣️ AI-Powered Route Safety Analysis for San Jose Commuters
 
