@@ -95,7 +95,6 @@ The algorithm uses optimized spatial calculations for performance, including:
 ```bash
 streamlit run 1_🏠_Home.py
 ```
-Then open http://localhost:8501 in your browser.
 
 ---
 
@@ -253,8 +252,4 @@ MIT License - See [LICENSE](LICENSE) for details
 - **San Jose Open Data Portal**: Geographical and urban planning information
 
 
----
 
-<div align="center">
-Built with ❤️ and AI for San Jose Community Safety
-</div>
