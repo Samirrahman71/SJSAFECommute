@@ -8,7 +8,7 @@
 
 ## 🛣️ AI-Powered Route Safety Analysis for San Jose Commuters
 
-**Built with Streamlit, Pandas, and OpenAI GPT**
+**Built with Streamlit, Pandas, and OpenAI API**
 
 ## 🔍 Overview
 
