@@ -1,54 +1,81 @@
-<div align="center">
+# 🚗 San Jose Safe Commute
 
-# 🚗 San Jose Safe Commute | AI Safety Navigator
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://sjsafecommute-samirrahman71.streamlit.app/)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-An advanced AI-powered Streamlit app to help San Jose commuters plan safer routes by integrating real crash data analysis, machine learning risk prediction, and interactive safety visualizations.
+ app: sjsafecommute.streamlit.app
 
----
+## 🛣️ AI-Powered Route Safety Analysis for San Jose Commuters
 
-## 🔍 Features
+**Built with Streamlit, Pandas, and OpenAI API**
 
-- **AI-Powered Route Safety Analysis**  
-  Utilizes natural language processing and machine learning to analyze route safety with personalized recommendations.
+## 🔍 Overview
 
-- **Real Crash Data Integration**  
-  Incorporates actual San Jose crash data (2011-2021) using statistical pattern recognition to identify risk factors.
-
-- **Interactive Safety Visualization**  
-  Displays comprehensive safety analytics with AI-generated insights about crash patterns, hotspots, and contributing factors.
-
-- **ML Risk Prediction Model**  
-  Employs ensemble learning techniques combining gradient boosting and logistic regression to calculate route-specific risk scores.
-
-- **Temporal Pattern Recognition**  
-  Uses time series analysis to identify high-risk travel periods based on historical incident data.
-
-- **Smart Route Recommendations**  
-  Generates alternative route suggestions optimized for safety using a custom-built path-finding algorithm.
-
-- **Natural Language Safety Assistant**  
-  Features an AI chat interface that can answer route-specific safety questions using contextual understanding.
-
-- **Autocomplete Location Inputs**  
-  Suggests San Jose-focused locations via Google Maps Places API integration.
+San Jose Safe Commute is an advanced data-driven application that helps commuters navigate San Jose's streets more safely. By analyzing historical crash data (2011-2021) and applying our proprietary safety scoring algorithm, the app provides personalized safety insights and recommendations for any route in San Jose.
 
 ---
 
-## 📦 Installation
+## 🗠️ Technical Architecture
 
-1. **Clone the repo**
-   ```bash
-   git clone https://github.com/Samirrahman71/SJCAPP.git
-   cd SJCAPP
-   ```
-2. **Create & activate a virtual environment**
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate         # macOS/Linux
-   venv\Scripts\activate            # Windows
-   ```
-3. **Install dependencies**
-   ```bash
+### Core Components
+
+```text
+┌─────────────────────────────┐      ┌─────────────────────────┐
+│   Frontend (Streamlit)      │      │  Data Processing Layer   │
+│                             │      │                         │
+│  ┌─────────────────────────┐│      │ ┌─────────────────────┐ │
+│  │      UI Components      ││      │ │  Data Preprocessing  │ │
+│  │  - Interactive Maps     ││      │ │  - Crash Data ETL    │ │
+│  │  - Safety Visualizations││─────▶│ │  - Geocoding         │ │
+│  │  - Form Inputs          ││      │ │  - Feature Extraction│ │
+│  └─────────────────────────┘│      │ └─────────────────────┘ │
+│                             │      │            │            │
+│  ┌─────────────────────────┐│      │            ▼            │
+│  │      State Management   ││      │ ┌─────────────────────┐ │
+│  │  - Session State        ││      │ │   Analysis Engine    │ │
+│  │  - Caching              ││◀─────│ │  - Safety Scoring    │ │
+│  │  - User Preferences     ││      │ │  - Route Analysis    │ │
+│  └─────────────────────────┘│      │ └─────────────────────┘ │
+└─────────────────────────────┘      └─────────────────────────┘
+            │                                      │
+            ▼                                      ▼
+┌─────────────────────────────┐      ┌─────────────────────────┐
+│   Integration Layer         │      │   AI Services           │
+│                             │      │                         │
+│  - OpenAI API Integration  │      │  - Route Q&A            │
+│  - GeoCoding Services      │      │  - Safety Insights      │
+│  - External Data Sources    │      │  - Recommendations      │
+└─────────────────────────────┘      └─────────────────────────┘
+```
+
+### Key Features
+
+- **Multi-Component Safety Scoring Algorithm**  
+  Our proprietary algorithm evaluates route safety using a weighted formula:
+
+  ```python
+  safety_score = (historical_crash_data * 0.60) + 
+                 (route_characteristics * 0.25) + 
+                 (current_conditions * 0.15)
+  ```
+
+- **Real-Time Data Visualization**  
+  Incorporates heat maps, marker clusters, and interactive overlays using Folium for spatial analysis.
+
+- **Natural Language Processing**  
+  Implements context-aware route safety Q&A system using OpenAI's GPT models.
+
+- **Spatiotemporal Pattern Analysis**  
+  Uses custom geodesic distance algorithms and time-series pattern detection to identify dangerous route segments and time periods.
+
+
+
+The algorithm uses optimized spatial calculations for performance, including:
+
+- Haversine distance formula for route length calculation
+- Custom point-to-line distance algorithm for crash proximity analysis
+- Spatiotemporal clustering to identify high-risk areas and times
    pip install -r requirements.txt
    ```
 
@@ -68,7 +95,6 @@ An advanced AI-powered Streamlit app to help San Jose commuters plan safer route
 ```bash
 streamlit run 1_🏠_Home.py
 ```
-Then open http://localhost:8501 in your browser.
 
 ---
 
@@ -200,14 +226,6 @@ def identify_risk_hotspots(latitude, longitude, radius=1.0):
 - Optimized visualizations for mobile and desktop
 - Progressive loading of computationally intensive analyses
 
-## 🤝 Contributing
-
-We welcome contributions from:
-- Machine Learning & AI Engineers
-- Traffic Safety Experts & Data Scientists
-- Urban Planning Specialists
-- User Experience Designers
-- San Jose Community Safety Advocates
 
 ### Development Process
 1. Fork the repository
@@ -233,15 +251,5 @@ MIT License - See [LICENSE](LICENSE) for details
 - **California Highway Patrol**: Traffic accident reports and statistics
 - **San Jose Open Data Portal**: Geographical and urban planning information
 
-## 🙏 Acknowledgments
 
-- City of San Jose Department of Transportation
-- San Jose State University Computer Science Department
-- Silicon Valley Traffic Safety Coalition
-- Open Source Machine Learning Community
 
----
-
-<div align="center">
-Built with ❤️ and AI for San Jose Community Safety
-</div>
