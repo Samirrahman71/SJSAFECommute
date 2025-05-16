@@ -12,7 +12,9 @@
 
 ## 🔍 Overview
 
-San Jose Safe Commute is an advanced data-driven application that helps commuters navigate San Jose's streets more safely. By analyzing historical crash data (2011-2021) and applying our proprietary safety scoring algorithm, the app provides personalized safety insights and recommendations for any route in San Jose.
+Project Summary:
+SJSAFECommute is an AI-powered commuter assistance app I developed to ease San Jose’s traffic woes and enhance traveler safety. I led the project end-to-end: designing a GPT-4 chatbot for real-time, personalized route and safety guidance, crafting a Python–pandas risk-score calculator using ten years of accident data, and building a user-friendly Streamlit interface. I faced several challenges along the way: initial chatbot outputs were often off-topic or vague, which required extensive prompt tuning and iterative testing with ChatGPT to improve response precision; integrating disparate data sources and APIs—ranging from traffic incident logs to geospatial mapping services—demanded careful workflow orchestration and error handling; and balancing feature development with academic deadlines forced me to streamline my development pipeline and prioritize core functionalities. By overcoming these hurdles, I delivered clear, data-driven insights that empower commuters of all backgrounds to make informed travel choices, showcasing generative AI’s capacity to address critical urban mobility and public safety issues.
+
 
 ---
 
