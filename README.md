@@ -1,10 +1,10 @@
-# 🚗 San Jose Safe Commute
+# 🚗 SJSAFECommute - San Jose Safety-Aware Framework for Enhanced Commute
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://sjsafecommute-samirrahman71.streamlit.app/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://sjsafecommute.streamlit.app/)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
- app: sjsafecommute.streamlit.app
+## 🌟 [LIVE DEMO: https://sjsafecommute.streamlit.app/](https://sjsafecommute.streamlit.app/)
 
 ## 🛣️ AI-Powered Route Safety Analysis for San Jose Commuters
 
@@ -12,9 +12,7 @@
 
 ## 🔍 Overview
 
-Project Summary:
-SJSAFECommute is an AI-powered commuter assistance app I developed to ease San Jose’s traffic woes and enhance traveler safety. I led the project end-to-end: designing a GPT-4 chatbot for real-time, personalized route and safety guidance, crafting a Python–pandas risk-score calculator using ten years of accident data, and building a user-friendly Streamlit interface. I faced several challenges along the way: initial chatbot outputs were often off-topic or vague, which required extensive prompt tuning and iterative testing with ChatGPT to improve response precision; integrating disparate data sources and APIs—ranging from traffic incident logs to geospatial mapping services—demanded careful workflow orchestration and error handling; and balancing feature development with academic deadlines forced me to streamline my development pipeline and prioritize core functionalities. By overcoming these hurdles, I delivered clear, data-driven insights that empower commuters of all backgrounds to make informed travel choices, showcasing generative AI’s capacity to address critical urban mobility and public safety issues.
-
+SJSAFECommute is an AI-powered commuter assistance app designed to ease San Jose's traffic woes and enhance traveler safety. The app provides real-time, personalized route and safety guidance through a GPT-4 chatbot, calculates risk scores using ten years of accident data, and presents information through a user-friendly Streamlit interface.
 
 ---
 
@@ -71,15 +69,11 @@ SJSAFECommute is an AI-powered commuter assistance app I developed to ease San J
 - **Spatiotemporal Pattern Analysis**  
   Uses custom geodesic distance algorithms and time-series pattern detection to identify dangerous route segments and time periods.
 
-
-
 The algorithm uses optimized spatial calculations for performance, including:
 
 - Haversine distance formula for route length calculation
 - Custom point-to-line distance algorithm for crash proximity analysis
 - Spatiotemporal clustering to identify high-risk areas and times
-   pip install -r requirements.txt
-   ```
 
 ### ⚙️ API Key Configuration
 
@@ -228,7 +222,6 @@ def identify_risk_hotspots(latitude, longitude, radius=1.0):
 - Optimized visualizations for mobile and desktop
 - Progressive loading of computationally intensive analyses
 
-
 ### Development Process
 1. Fork the repository
 2. Create feature branch (`git checkout -b feature/YourFeature`)
@@ -252,6 +245,3 @@ MIT License - See [LICENSE](LICENSE) for details
 - **San Jose Department of Transportation**: Road safety infrastructure data
 - **California Highway Patrol**: Traffic accident reports and statistics
 - **San Jose Open Data Portal**: Geographical and urban planning information
-
-
-
